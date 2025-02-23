@@ -605,3 +605,46 @@
 2025-02-23 15:19:12.677 | INFO     | bot:on_startup:27 - Бот запущен.
 2025-02-23 15:19:19.153 | INFO     | handlers:cmd_quotes:64 - Пользователь 413467341 запросил котировки.
 2025-02-23 15:24:12.679 | INFO     | scheduler:check_alerts:11 - Проверка алертов...
+2025-02-23 15:24:42.152 | INFO     | __main__:<module>:49 - Запуск бота...
+2025-02-23 15:24:42.153 | INFO     | bot:setup_bot:20 - Инициализация бота...
+2025-02-23 15:24:42.153 | INFO     | bot:setup_bot:22 - Хэндлеры зарегистрированы.
+2025-02-23 15:24:42.154 | INFO     | scheduler:setup_scheduler:55 - Планировщик настроен.
+2025-02-23 15:24:42.157 | INFO     | database:init_db:159 - База данных инициализирована.
+2025-02-23 15:24:42.157 | INFO     | bot:on_startup:27 - Бот запущен.
+2025-02-23 15:24:49.378 | INFO     | handlers:cmd_quotes:64 - Пользователь 413467341 запросил котировки.
+2025-02-23 15:24:59.971 | ERROR    | api:get_stock_price_finnhub:65 - Ошибка при получении цены для AAPL через Finnhub: 'Settings' object has no attribute 'FINNHUB_API_KEY'
+2025-02-23 15:24:59.972 | WARNING  | api:get_stock_price:106 - Цена для AAPL не найдена через Finnhub, переходим к следующему API
+2025-02-23 15:25:00.924 | INFO     | api:get_stock_price_yfinance:76 - Цена для AAPL получена через yfinance: 245.5500030517578
+2025-02-23 15:25:00.924 | INFO     | api:get_stock_price:104 - Цена для AAPL получена через yfinance: 245.5500030517578
+2025-02-23 15:25:01.047 | INFO     | handlers:get_quote:123 - Пользователь 413467341 запросил цену AAPL (stock).
+2025-02-23 15:25:04.314 | INFO     | handlers:cmd_quotes:64 - Пользователь 413467341 запросил котировки.
+2025-02-23 15:25:07.147 | ERROR    | api:get_stock_price_alpha_vantage:46 - Ошибка при получении цены для SBER через Alpha Vantage: 'Settings' object has no attribute 'ALPHA_VANTAGE_API_KEY'
+2025-02-23 15:25:07.148 | WARNING  | api:get_stock_price:106 - Цена для SBER не найдена через Alpha Vantage, переходим к следующему API
+2025-02-23 15:25:07.148 | ERROR    | api:get_stock_price_finnhub:65 - Ошибка при получении цены для SBER через Finnhub: 'Settings' object has no attribute 'FINNHUB_API_KEY'
+2025-02-23 15:25:07.148 | WARNING  | api:get_stock_price:106 - Цена для SBER не найдена через Finnhub, переходим к следующему API
+2025-02-23 15:25:07.458 | ERROR    | api:get_stock_price_yfinance:79 - Цена для SBER не найдена через yfinance
+2025-02-23 15:25:07.458 | WARNING  | api:get_stock_price:106 - Цена для SBER не найдена через yfinance, переходим к следующему API
+2025-02-23 15:25:07.458 | ERROR    | api:get_stock_price:111 - Не удалось получить цену для SBER через все доступные API
+2025-02-23 15:25:07.591 | INFO     | handlers:get_quote:123 - Пользователь 413467341 запросил цену SBER (stock).
+2025-02-23 15:25:26.153 | INFO     | handlers:cmd_quotes:64 - Пользователь 413467341 запросил котировки.
+2025-02-23 15:25:30.164 | ERROR    | api:get_stock_price_finnhub:65 - Ошибка при получении цены для GAZP через Finnhub: 'Settings' object has no attribute 'FINNHUB_API_KEY'
+2025-02-23 15:25:30.164 | WARNING  | api:get_stock_price:106 - Цена для GAZP не найдена через Finnhub, переходим к следующему API
+2025-02-23 15:25:30.164 | ERROR    | api:get_stock_price_alpha_vantage:46 - Ошибка при получении цены для GAZP через Alpha Vantage: 'Settings' object has no attribute 'ALPHA_VANTAGE_API_KEY'
+2025-02-23 15:25:30.164 | WARNING  | api:get_stock_price:106 - Цена для GAZP не найдена через Alpha Vantage, переходим к следующему API
+2025-02-23 15:25:30.406 | ERROR    | api:get_stock_price_yfinance:79 - Цена для GAZP не найдена через yfinance
+2025-02-23 15:25:30.407 | WARNING  | api:get_stock_price:106 - Цена для GAZP не найдена через yfinance, переходим к следующему API
+2025-02-23 15:25:30.407 | ERROR    | api:get_stock_price:111 - Не удалось получить цену для GAZP через все доступные API
+2025-02-23 15:25:30.496 | INFO     | handlers:get_quote:123 - Пользователь 413467341 запросил цену GAZP (stock).
+2025-02-23 15:25:32.900 | INFO     | handlers:cmd_quotes:64 - Пользователь 413467341 запросил котировки.
+2025-02-23 15:25:38.392 | ERROR    | api:get_stock_price_finnhub:65 - Ошибка при получении цены для TSLA через Finnhub: 'Settings' object has no attribute 'FINNHUB_API_KEY'
+2025-02-23 15:25:38.393 | WARNING  | api:get_stock_price:106 - Цена для TSLA не найдена через Finnhub, переходим к следующему API
+2025-02-23 15:25:38.641 | INFO     | api:get_stock_price_yfinance:76 - Цена для TSLA получена через yfinance: 337.79998779296875
+2025-02-23 15:25:38.642 | INFO     | api:get_stock_price:104 - Цена для TSLA получена через yfinance: 337.79998779296875
+2025-02-23 15:25:38.730 | INFO     | handlers:get_quote:123 - Пользователь 413467341 запросил цену TSLA (stock).
+2025-02-23 15:25:41.494 | INFO     | handlers:cmd_quotes:64 - Пользователь 413467341 запросил котировки.
+2025-02-23 15:25:47.985 | INFO     | api:get_crypto_price:127 - Цена криптовалюты BTC/USDT: 95876.99
+2025-02-23 15:25:48.380 | INFO     | handlers:get_quote:123 - Пользователь 413467341 запросил цену BTC/USDT (crypto).
+2025-02-23 15:26:20.165 | INFO     | api:get_stock_price:90 - Использована кэшированная цена для акции AAPL: 245.5500030517578
+2025-02-23 15:26:20.165 | INFO     | api:get_crypto_price:119 - Использована кэшированная цена для криптовалюты BTC/USDT: 95876.99
+2025-02-23 15:26:22.462 | INFO     | api:get_crypto_price:127 - Цена криптовалюты ETH/USDT: 2788.38
+2025-02-23 15:26:22.771 | INFO     | api:get_stock_price:90 - Использована кэшированная цена для акции TSLA: 337.79998779296875
