@@ -95,7 +95,7 @@ async def get_stock_price(symbol: str) -> Optional[float]:
     # Проверка кэша
     if symbol in _stock_price_cache:
         price, timestamp = _stock_price_cache[symbol]
-        if (datetime.now() - timestamp).total_seconds() < CACHE_TIMEOUT:
+        if (datetime.now() - timestamp).total_seconds() < STOCK_CACHE_TIMEOUT:
             logger.info(f"Использована кэшированная цена для акции {symbol}: {price}")
             return price
 
@@ -121,7 +121,7 @@ async def get_crypto_price(symbol: str) -> Optional[float]:
     # Проверка кэша
     if symbol in _crypto_price_cache:
         price, timestamp = _crypto_price_cache[symbol]
-        if (datetime.now() - timestamp).total_seconds() < CACHE_TIMEOUT:
+        if (datetime.now() - timestamp).total_seconds() < CRYPTO_CACHE_TIMEOUT :
             logger.info(f"Использована кэшированная цена для криптовалюты {symbol}: {price}")
             return price
 
