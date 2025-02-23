@@ -14,7 +14,6 @@ router = Router()
 
 # Функция для создания инлайн-клавиатуры
 def get_main_menu() -> InlineKeyboardMarkup:
-    """Создает инлайн-клавиатуру с разделами."""
     keyboard = [
         [InlineKeyboardButton(text="📊 Котировки и рынок", callback_data="quotes_market")],
         [InlineKeyboardButton(text="🔔 Оповещения", callback_data="alerts")],
@@ -23,11 +22,11 @@ def get_main_menu() -> InlineKeyboardMarkup:
     ]
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
-# Функции для подменю
 def get_quotes_market_menu() -> InlineKeyboardMarkup:
     keyboard = [
         [InlineKeyboardButton(text="📈 Котировки (/quotes)", callback_data="cmd_quotes")],
-        [InlineKeyboardButton(text="📉 Рынок портфеля (/market)", callback_data="cmd_market")],
+        [InlineKeyboardButton(text="📉 Рыночные цены активов портфеля", callback_data="cmd_market")],
+        [InlineKeyboardButton(text="ℹ️ Помощь", callback_data="cmd_help")],
         [InlineKeyboardButton(text="⬅️ Назад", callback_data="back_to_main")]
     ]
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
@@ -37,6 +36,7 @@ def get_alerts_menu() -> InlineKeyboardMarkup:
         [InlineKeyboardButton(text="🔔 Установить алерт (/set_alert)", callback_data="cmd_set_alert")],
         [InlineKeyboardButton(text="📋 Список алертов (/alerts)", callback_data="cmd_alerts")],
         [InlineKeyboardButton(text="❌ Удалить алерт (/remove_alert)", callback_data="cmd_remove_alert")],
+        [InlineKeyboardButton(text="ℹ️ Помощь", callback_data="cmd_help")],
         [InlineKeyboardButton(text="⬅️ Назад", callback_data="back_to_main")]
     ]
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
@@ -46,6 +46,7 @@ def get_portfolio_menu() -> InlineKeyboardMarkup:
         [InlineKeyboardButton(text="➕ Добавить актив (/add_to_portfolio)", callback_data="cmd_add_to_portfolio")],
         [InlineKeyboardButton(text="➖ Удалить актив (/remove_from_portfolio)", callback_data="cmd_remove_from_portfolio")],
         [InlineKeyboardButton(text="📂 Показать портфель (/portfolio)", callback_data="cmd_portfolio")],
+        [InlineKeyboardButton(text="ℹ️ Помощь", callback_data="cmd_help")],
         [InlineKeyboardButton(text="⬅️ Назад", callback_data="back_to_main")]
     ]
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
@@ -60,7 +61,6 @@ def get_management_menu() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
 def get_welcome_help_text() -> str:
-    """Возвращает текст приветствия и помощи с описанием возможностей бота."""
     return (
         "👋 Добро пожаловать в бот для управления портфелем и отслеживания активов!\n\n"
         "📌 **Что я умею:**\n"
@@ -78,14 +78,12 @@ def get_welcome_help_text() -> str:
 
 @router.message(Command("start"))
 async def cmd_start(message: Message):
-    """Обработчик команды /start."""
     welcome_text = get_welcome_help_text()
     await message.answer(welcome_text, reply_markup=get_main_menu())
     logger.info(f"Пользователь {message.from_user.id} начал работу с ботом.")
 
 @router.message(Command("help"))
 async def cmd_help(message: Message):
-    """Обработчик команды /help."""
     help_text = get_welcome_help_text()
     await message.answer(help_text, reply_markup=get_main_menu())
     logger.info(f"Пользователь {message.from_user.id} запросил помощь.")
@@ -120,36 +118,35 @@ async def back_to_main_menu(callback: CallbackQuery):
     await callback.message.edit_text("📋 Выберите раздел:", reply_markup=get_main_menu())
     await callback.answer()
 
-# Обработчики команд через callback
 @router.callback_query(F.data.startswith("cmd_"))
-async def handle_command_callback(callback: CallbackQuery):
+async def handle_command_callback(callback: CallbackQuery, state: FSMContext):
     """Обработчик команд через callback."""
     command = callback.data.replace("cmd_", "")
     user_id = callback.from_user.id
 
     # Имитация отправки команды
     if command == "quotes":
-        await cmd_quotes(callback.message)
+        await cmd_quotes(callback.message, state)  # Передаем state
     elif command == "market":
-        await cmd_market(callback.message)
+        await cmd_market(callback.message)  # cmd_market не использует state
     elif command == "set_alert":
-        await cmd_set_alert(callback.message)
+        await cmd_set_alert(callback.message, state)  # Передаем state
     elif command == "alerts":
-        await cmd_alerts(callback.message)
+        await cmd_alerts(callback.message)  # cmd_alerts не использует state
     elif command == "remove_alert":
-        await cmd_remove_alert(callback.message)
+        await cmd_remove_alert(callback.message, state)  # Передаем state
     elif command == "add_to_portfolio":
-        await cmd_add_to_portfolio(callback.message)
+        await cmd_add_to_portfolio(callback.message, state)  # Передаем state
     elif command == "remove_from_portfolio":
-        await cmd_remove_from_portfolio(callback.message)
+        await cmd_remove_from_portfolio(callback.message, state)  # Передаем state
     elif command == "portfolio":
-        await cmd_portfolio(callback.message)
+        await cmd_portfolio(callback.message)  # cmd_portfolio не использует state
     elif command == "start":
-        await cmd_start(callback.message)
+        await cmd_start(callback.message)  # cmd_start не использует state
     elif command == "help":
-        await cmd_help(callback.message)
+        await cmd_help(callback.message)  # cmd_help не использует state
     elif command == "cancel":
-        await cmd_cancel(callback.message)
+        await cmd_cancel(callback.message, state)  # Передаем state
 
     await callback.answer()
     logger.info(f"Пользователь {user_id} выполнил команду через меню: /{command}")

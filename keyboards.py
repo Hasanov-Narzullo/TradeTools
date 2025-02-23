@@ -1,16 +1,21 @@
-from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-def main_menu() -> ReplyKeyboardMarkup:
-    """Создание главного меню."""
-    return ReplyKeyboardMarkup(
-        keyboard=[
-            [KeyboardButton(text="/quotes"), KeyboardButton(text="/portfolio")],
-            [KeyboardButton(text="/add_to_portfolio"), KeyboardButton(text="/set_alert")],
-            [KeyboardButton(text="/calendar"), KeyboardButton(text="/help")]
+def main_menu() -> InlineKeyboardMarkup:
+    """Создание главного меню (инлайн)."""
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text="📈 Котировки", callback_data="cmd_quotes"),
+            InlineKeyboardButton(text="💼 Портфель", callback_data="cmd_portfolio")
         ],
-        resize_keyboard=True,
-        one_time_keyboard=True
-    )
+        [
+            InlineKeyboardButton(text="➕ Добавить в портфель", callback_data="cmd_add_to_portfolio"),
+            InlineKeyboardButton(text="🔔 Установить алерт", callback_data="cmd_set_alert")
+        ],
+        [
+            InlineKeyboardButton(text="📅 Календарь (скоро)", callback_data="cmd_calendar"), # Placeholder for calendar
+            InlineKeyboardButton(text="❓ Помощь", callback_data="cmd_help")
+        ]
+    ])
 
 def asset_type_keyboard() -> InlineKeyboardMarkup:
     """Создание клавиатуры для выбора типа актива (акции или криптовалюты)."""
@@ -29,9 +34,8 @@ def alert_condition_keyboard() -> InlineKeyboardMarkup:
     ])
     return keyboard
 
-def cancel_keyboard() -> ReplyKeyboardMarkup:
-    """Создание клавиатуры для отмены действия."""
-    return ReplyKeyboardMarkup(
-        keyboard=[[KeyboardButton(text="Отмена")]],
-        resize_keyboard=True,
-        one_time_keyboard=True)
+def cancel_keyboard() -> InlineKeyboardMarkup:
+    """Создание клавиатуры для отмены действия (инлайн)."""
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="❌ Отмена", callback_data="cmd_cancel")]
+    ])
