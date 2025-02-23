@@ -1,3 +1,5 @@
+import random
+
 import yfinance as yf
 import ccxt
 from typing import Optional, Dict, Tuple
@@ -9,7 +11,6 @@ from loguru import logger
 from typing import Optional
 from config import settings
 import ccxt.async_support as ccxt
-from tinkoff.invest import AsyncClient, InstrumentIdType
 from datetime import datetime, timedelta
 
 
@@ -48,7 +49,6 @@ async def get_stock_price_alpha_vantage(symbol: str) -> Optional[float]:
         return None
 
 async def get_stock_price_finnhub(symbol: str) -> Optional[float]:
-    """Получение цены акции через Finnhub."""
     try:
         url = f"https://finnhub.io/api/v1/quote?symbol={symbol}&token={settings.FINNHUB_API_KEY}"
         async with aiohttp.ClientSession() as session:
@@ -66,29 +66,72 @@ async def get_stock_price_finnhub(symbol: str) -> Optional[float]:
         logger.error(f"Ошибка при получении цены для {symbol} через Finnhub: {e}")
         return None
 
-async def get_stock_price_tinkoff(symbol: str) -> Optional[float]:
-    """Получение цены акции через Tinkoff Invest API."""
+async def get_stock_price_yfinance(symbol: str) -> Optional[float]:
     try:
-        async with AsyncClient(settings.TINKOFF_INVEST_TOKEN) as client:
-            # Поиск инструмента по тикеру
-            instruments = await client.instruments.find_instrument(query=symbol)
-            instrument = next((i for i in instruments.instruments if i.ticker == symbol), None)
-            if not instrument:
-                logger.error(f"Инструмент {symbol} не найден в Tinkoff Invest API")
-                return None
-
-            # Получение последней цены
-            last_price = await client.market_data.get_last_prices(figi=[instrument.figi])
-            if last_price.last_prices:
-                price = last_price.last_prices[0].price.units + last_price.last_prices[0].price.nano / 1e9
-                _stock_price_cache[symbol] = (price, datetime.now())
-                return price
-            else:
-                logger.error(f"Цена для {symbol} не найдена в Tinkoff Invest API")
-                return None
+        ticker = yf.Ticker(symbol + ".ME" if symbol in ["SBER", "GAZP", "LKOH"] else symbol)
+        data = ticker.history(period="1d")
+        if not data.empty:
+            price = data['Close'].iloc[-1]
+            _stock_price_cache[symbol] = (price, datetime.now())
+            logger.info(f"Цена для {symbol} получена через yfinance: {price}")
+            return price
+        else:
+            logger.error(f"Цена для {symbol} не найдена через yfinance")
+            return None
     except Exception as e:
-        logger.error(f"Ошибка при получении цены для {symbol} через Tinkoff Invest API: {e}")
+        logger.error(f"Ошибка при получении цены для {symbol} через yfinance: {e}")
         return None
+
+async def get_stock_price(symbol: str) -> Optional[float]:
+    if symbol in _stock_price_cache:
+        price, timestamp = _stock_price_cache[symbol]
+        if (datetime.now() - timestamp).total_seconds() < STOCK_CACHE_TIMEOUT:
+            logger.info(f"Использована кэшированная цена для акции {symbol}: {price}")
+            return price
+
+    apis = [
+        (get_stock_price_alpha_vantage, "Alpha Vantage"),
+        (get_stock_price_yfinance, "yfinance"),  # Исправлено: ссылка на функцию
+        (get_stock_price_finnhub, "Finnhub")
+    ]
+    random.shuffle(apis)
+
+    for api_func, api_name in apis:
+        price = await api_func(symbol)  # Передаем symbol при вызове
+        if price is not None:
+            logger.info(f"Цена для {symbol} получена через {api_name}: {price}")
+            return price
+        logger.warning(f"Цена для {symbol} не найдена через {api_name}, переходим к следующему API")
+
+    logger.error(f"Не удалось получить цену для {symbol} через все доступные API")
+    return None
+
+async def get_crypto_price(symbol: str) -> Optional[float]:
+    if symbol in _crypto_price_cache:
+        price, timestamp = _crypto_price_cache[symbol]
+        if (datetime.now() - timestamp).total_seconds() < CRYPTO_CACHE_TIMEOUT:
+            logger.info(f"Использована кэшированная цена для криптовалюты {symbol}: {price}")
+            return price
+
+    try:
+        exchange = ccxt.binance()
+        ticker = await exchange.fetch_ticker(symbol)
+        price = ticker['last']
+        _crypto_price_cache[symbol] = (price, datetime.now())
+        logger.info(f"Цена криптовалюты {symbol}: {price}")
+        return price
+    except Exception as e:
+        logger.error(f"Ошибка при получении цены для {symbol} через ccxt: {e}")
+        return None
+    finally:
+        await exchange.close()
+
+async def fetch_asset_price(symbol: str, asset_type: str) -> Optional[float]:
+    if asset_type == "stock":
+        return await get_stock_price(symbol)
+    elif asset_type == "crypto":
+        return await get_crypto_price(symbol)
+    return None
 
 async def get_stock_price(symbol: str) -> Optional[float]:
     """Получение цены акции с переключением между API."""
@@ -102,7 +145,7 @@ async def get_stock_price(symbol: str) -> Optional[float]:
     # Попытка получения цены из трех API
     apis = [
         (get_stock_price_alpha_vantage, "Alpha Vantage"),
-        (get_stock_price_tinkoff, "Tinkoff Invest"),
+        (get_stock_price_yfinance(), "Yfinance"),
         (get_stock_price_finnhub, "Finnhub")
     ]
 
