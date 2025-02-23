@@ -14,24 +14,19 @@ from alert_checker import check_alerts
 if sys.platform == "win32":
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
+
 async def main():
     """Основная функция для запуска бота."""
     # Настройка бота
     setup_bot()
 
+    # Явно вызываем инициализацию базы данных
+    await on_startup()  # Добавьте эту строку если её нет
+
     # Инициализация планировщика
     scheduler = AsyncIOScheduler(timezone=settings.scheduler.TIMEZONE)
     setup_scheduler(scheduler)
     scheduler.start()
-
-    # Запуск бота
-    try:
-        await on_startup()
-        await dp.start_polling(bot)
-    except Exception as e:
-        logger.error(f"Ошибка при запуске бота: {e}")
-    finally:
-        await on_shutdown()
 
     asyncio.create_task(check_alerts(bot))
     logger.info("Фоновая задача проверки алертов запущена.")
@@ -41,7 +36,7 @@ async def main():
         logger.info("Бот запущен.")
         await dp.start_polling(bot)
     finally:
-        # Закрываем сессию бота при завершении
+        await on_shutdown()
         await bot.session.close()
         logger.info("Бот остановлен.")
 
