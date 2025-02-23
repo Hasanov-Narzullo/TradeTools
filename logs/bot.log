@@ -729,3 +729,141 @@
 2025-02-23 15:49:49.396 | INFO     | api:get_stock_price_yfinance:76 - Цена для TSLA получена через yfinance: 337.79998779296875
 2025-02-23 15:49:49.397 | INFO     | api:get_stock_price:104 - Цена для TSLA получена через yfinance: 337.79998779296875
 2025-02-23 15:49:49.688 | INFO     | handlers:cmd_portfolio:162 - Пользователь 413467341 запросил портфель.
+2025-02-23 15:53:39.477 | INFO     | __main__:<module>:49 - Запуск бота...
+2025-02-23 15:53:39.477 | INFO     | bot:setup_bot:20 - Инициализация бота...
+2025-02-23 15:53:39.477 | INFO     | bot:setup_bot:22 - Хэндлеры зарегистрированы.
+2025-02-23 15:53:39.478 | INFO     | scheduler:setup_scheduler:58 - Планировщик настроен.
+2025-02-23 15:53:39.481 | INFO     | database:init_db:159 - База данных инициализирована.
+2025-02-23 15:53:39.481 | INFO     | bot:on_startup:27 - Бот запущен.
+2025-02-23 15:53:40.796 | ERROR    | api:get_stock_price_finnhub:65 - Ошибка при получении цены для AAPL через Finnhub: 'Settings' object has no attribute 'FINNHUB_API_KEY'
+2025-02-23 15:53:40.796 | WARNING  | api:get_stock_price:106 - Цена для AAPL не найдена через Finnhub, переходим к следующему API
+2025-02-23 15:53:41.427 | INFO     | api:get_stock_price_yfinance:76 - Цена для AAPL получена через yfinance: 245.5500030517578
+2025-02-23 15:53:41.428 | INFO     | api:get_stock_price:104 - Цена для AAPL получена через yfinance: 245.5500030517578
+2025-02-23 15:53:43.229 | INFO     | api:get_crypto_price:127 - Цена криптовалюты BTC/USDT: 95733.99
+2025-02-23 15:53:45.882 | INFO     | api:get_crypto_price:127 - Цена криптовалюты ETH/USDT: 2789.87
+2025-02-23 15:53:46.162 | ERROR    | api:get_stock_price_alpha_vantage:46 - Ошибка при получении цены для TSLA через Alpha Vantage: 'Settings' object has no attribute 'ALPHA_VANTAGE_API_KEY'
+2025-02-23 15:53:46.162 | WARNING  | api:get_stock_price:106 - Цена для TSLA не найдена через Alpha Vantage, переходим к следующему API
+2025-02-23 15:53:46.162 | ERROR    | api:get_stock_price_finnhub:65 - Ошибка при получении цены для TSLA через Finnhub: 'Settings' object has no attribute 'FINNHUB_API_KEY'
+2025-02-23 15:53:46.162 | WARNING  | api:get_stock_price:106 - Цена для TSLA не найдена через Finnhub, переходим к следующему API
+2025-02-23 15:53:46.291 | INFO     | api:get_stock_price_yfinance:76 - Цена для TSLA получена через yfinance: 337.79998779296875
+2025-02-23 15:53:46.291 | INFO     | api:get_stock_price:104 - Цена для TSLA получена через yfinance: 337.79998779296875
+2025-02-23 15:53:46.599 | INFO     | handlers:cmd_portfolio:159 - Пользователь 413467341 запросил портфель.
+2025-02-23 15:53:58.666 | INFO     | handlers:cmd_alerts:567 - Пользователь 413467341 запросил список алертов.
+2025-02-23 15:54:02.782 | INFO     | handlers:cmd_quotes:64 - Пользователь 413467341 запросил котировки.
+2025-02-23 15:54:07.144 | INFO     | api:get_crypto_price:119 - Использована кэшированная цена для криптовалюты BTC/USDT: 95733.99
+2025-02-23 15:54:07.296 | INFO     | handlers:get_quote:120 - Пользователь 413467341 запросил цену BTC/USDT (crypto).
+2025-02-23 15:58:19.825 | INFO     | handlers:cmd_quotes:64 - Пользователь 413467341 запросил котировки.
+2025-02-23 15:58:36.262 | INFO     | api:get_stock_price_yfinance:76 - Цена для NVDA получена через yfinance: 134.42999267578125
+2025-02-23 15:58:36.263 | INFO     | api:get_stock_price:104 - Цена для NVDA получена через yfinance: 134.42999267578125
+2025-02-23 15:58:36.383 | INFO     | handlers:get_quote:120 - Пользователь 413467341 запросил цену NVDA (stock).
+2025-02-23 15:58:39.487 | INFO     | scheduler:check_alerts:14 - Проверка алертов...
+2025-02-23 15:58:39.488 | INFO     | api:get_stock_price:90 - Использована кэшированная цена для акции TSLA: 337.79998779296875
+2025-02-23 15:58:39.693 | INFO     | database:remove_alert:81 - Алерт 1 удален.
+2025-02-23 15:58:39.694 | INFO     | scheduler:check_alerts:34 - Алерт 1 сработал и удален.
+2025-02-23 15:58:43.139 | INFO     | api:get_crypto_price:127 - Цена криптовалюты BTC/USDT: 95723.12
+2025-02-23 15:58:43.427 | INFO     | api:get_crypto_price:119 - Использована кэшированная цена для криптовалюты BTC/USDT: 95723.12
+2025-02-23 15:58:43.539 | INFO     | database:remove_alert:81 - Алерт 3 удален.
+2025-02-23 15:58:43.540 | INFO     | scheduler:check_alerts:34 - Алерт 3 сработал и удален.
+2025-02-23 16:03:39.479 | INFO     | scheduler:check_alerts:14 - Проверка алертов...
+2025-02-23 16:03:39.480 | INFO     | scheduler:update_quotes:38 - Обновление котировок...
+2025-02-23 16:03:42.446 | INFO     | api:get_crypto_price:127 - Цена криптовалюты BTC/USDT: 95843.54
+2025-02-23 16:08:39.483 | INFO     | scheduler:check_alerts:14 - Проверка алертов...
+2025-02-23 16:08:41.483 | INFO     | api:get_crypto_price:127 - Цена криптовалюты BTC/USDT: 95900.0
+2025-02-23 16:32:45.656 | INFO     | __main__:<module>:49 - Запуск бота...
+2025-02-23 16:32:45.657 | INFO     | bot:setup_bot:20 - Инициализация бота...
+2025-02-23 16:32:45.657 | INFO     | bot:setup_bot:22 - Хэндлеры зарегистрированы.
+2025-02-23 16:32:45.658 | INFO     | scheduler:setup_scheduler:58 - Планировщик настроен.
+2025-02-23 16:32:45.661 | INFO     | database:init_db:159 - База данных инициализирована.
+2025-02-23 16:32:45.661 | INFO     | bot:on_startup:27 - Бот запущен.
+2025-02-23 16:32:56.771 | ERROR    | api:get_stock_price_alpha_vantage:47 - Ошибка при получении цены для AAPL через Alpha Vantage: 'Settings' object has no attribute 'ALPHA_VANTAGE_API_KEY'
+2025-02-23 16:32:56.772 | WARNING  | api:get_stock_price:107 - Цена для AAPL не найдена через Alpha Vantage, переходим к следующему API
+2025-02-23 16:32:56.772 | ERROR    | api:get_stock_price_finnhub:66 - Ошибка при получении цены для AAPL через Finnhub: 'Settings' object has no attribute 'FINNHUB_API_KEY'
+2025-02-23 16:32:56.772 | WARNING  | api:get_stock_price:107 - Цена для AAPL не найдена через Finnhub, переходим к следующему API
+2025-02-23 16:32:57.492 | INFO     | api:get_stock_price_yfinance:77 - Цена для AAPL получена через yfinance: 245.5500030517578
+2025-02-23 16:32:57.492 | INFO     | api:get_stock_price:105 - Цена для AAPL получена через yfinance: 245.5500030517578
+2025-02-23 16:33:00.157 | INFO     | api:get_crypto_price:128 - Цена криптовалюты BTC/USDT: 95798.7
+2025-02-23 16:33:02.741 | INFO     | api:get_crypto_price:128 - Цена криптовалюты ETH/USDT: 2809.21
+2025-02-23 16:33:03.142 | INFO     | api:get_stock_price_yfinance:77 - Цена для TSLA получена через yfinance: 337.79998779296875
+2025-02-23 16:33:03.142 | INFO     | api:get_stock_price:105 - Цена для TSLA получена через yfinance: 337.79998779296875
+2025-02-23 16:33:03.798 | INFO     | api:get_exchange_rate:198 - Курс USD/RUB: 88.79
+2025-02-23 16:33:04.075 | INFO     | handlers:cmd_portfolio:159 - Пользователь 413467341 запросил портфель.
+2025-02-23 16:33:52.736 | INFO     | handlers:cmd_alerts:567 - Пользователь 413467341 запросил список алертов.
+2025-02-23 16:33:56.602 | INFO     | handlers:cmd_set_alert:309 - Пользователь 413467341 начал настройку алерта.
+2025-02-23 16:34:02.016 | INFO     | api:get_crypto_price:120 - Использована кэшированная цена для криптовалюты BTC/USDT: 95798.7
+2025-02-23 16:34:07.996 | INFO     | database:add_alert:70 - Алерт для BTC/USDT добавлен для пользователя 413467341.
+2025-02-23 16:34:08.179 | INFO     | handlers:alert_condition:423 - Пользователь 413467341 установил алерт: BTC/USDT (crypto) - below $95200.00
+2025-02-23 16:34:10.950 | INFO     | handlers:cmd_set_alert:309 - Пользователь 413467341 начал настройку алерта.
+2025-02-23 16:34:16.201 | INFO     | api:get_crypto_price:120 - Использована кэшированная цена для криптовалюты BTC/USDT: 95798.7
+2025-02-23 16:34:21.001 | INFO     | database:add_alert:70 - Алерт для BTC/USDT добавлен для пользователя 413467341.
+2025-02-23 16:34:21.105 | INFO     | handlers:alert_condition:423 - Пользователь 413467341 установил алерт: BTC/USDT (crypto) - below $94500.00
+2025-02-23 16:34:25.436 | INFO     | handlers:cmd_set_alert:309 - Пользователь 413467341 начал настройку алерта.
+2025-02-23 16:34:30.400 | INFO     | api:get_crypto_price:120 - Использована кэшированная цена для криптовалюты BTC/USDT: 95798.7
+2025-02-23 16:34:40.135 | INFO     | database:add_alert:70 - Алерт для BTC/USDT добавлен для пользователя 413467341.
+2025-02-23 16:34:40.254 | INFO     | handlers:alert_condition:423 - Пользователь 413467341 установил алерт: BTC/USDT (crypto) - below $94100.00
+2025-02-23 16:34:45.429 | INFO     | handlers:cmd_set_alert:309 - Пользователь 413467341 начал настройку алерта.
+2025-02-23 16:34:51.807 | INFO     | api:get_crypto_price:120 - Использована кэшированная цена для криптовалюты BTC/USDT: 95798.7
+2025-02-23 16:34:55.338 | INFO     | database:add_alert:70 - Алерт для BTC/USDT добавлен для пользователя 413467341.
+2025-02-23 16:34:55.436 | INFO     | handlers:alert_condition:423 - Пользователь 413467341 установил алерт: BTC/USDT (crypto) - below $93700.00
+2025-02-23 16:35:02.026 | INFO     | handlers:cmd_alerts:567 - Пользователь 413467341 запросил список алертов.
+2025-02-23 16:35:19.350 | INFO     | handlers:cmd_calendar:442 - Пользователь 413467341 запросил календарь событий.
+2025-02-23 16:35:36.330 | INFO     | api:get_stock_price:91 - Использована кэшированная цена для акции AAPL: 245.5500030517578
+2025-02-23 16:35:38.986 | INFO     | api:get_crypto_price:128 - Цена криптовалюты BTC/USDT: 95883.98
+2025-02-23 16:35:41.596 | INFO     | api:get_crypto_price:128 - Цена криптовалюты ETH/USDT: 2812.99
+2025-02-23 16:35:41.889 | INFO     | api:get_stock_price:91 - Использована кэшированная цена для акции TSLA: 337.79998779296875
+2025-02-23 16:35:42.146 | INFO     | handlers:cmd_market:535 - Пользователь 413467341 запросил рыночные цены.
+2025-02-23 16:37:45.672 | INFO     | scheduler:check_alerts:14 - Проверка алертов...
+2025-02-23 16:37:48.186 | INFO     | api:get_crypto_price:128 - Цена криптовалюты BTC/USDT: 95882.44
+2025-02-23 16:37:48.476 | INFO     | api:get_crypto_price:120 - Использована кэшированная цена для криптовалюты BTC/USDT: 95882.44
+2025-02-23 16:37:48.476 | INFO     | api:get_crypto_price:120 - Использована кэшированная цена для криптовалюты BTC/USDT: 95882.44
+2025-02-23 16:37:48.476 | INFO     | api:get_crypto_price:120 - Использована кэшированная цена для криптовалюты BTC/USDT: 95882.44
+2025-02-23 16:37:48.476 | INFO     | api:get_crypto_price:120 - Использована кэшированная цена для криптовалюты BTC/USDT: 95882.44
+2025-02-23 16:42:45.668 | INFO     | scheduler:check_alerts:14 - Проверка алертов...
+2025-02-23 16:42:45.669 | INFO     | scheduler:update_quotes:38 - Обновление котировок...
+2025-02-23 16:42:48.027 | INFO     | api:get_crypto_price:128 - Цена криптовалюты BTC/USDT: 95860.99
+2025-02-23 16:42:48.332 | INFO     | api:get_crypto_price:120 - Использована кэшированная цена для криптовалюты BTC/USDT: 95860.99
+2025-02-23 16:42:48.333 | INFO     | api:get_crypto_price:120 - Использована кэшированная цена для криптовалюты BTC/USDT: 95860.99
+2025-02-23 16:42:48.333 | INFO     | api:get_crypto_price:120 - Использована кэшированная цена для криптовалюты BTC/USDT: 95860.99
+2025-02-23 16:42:48.333 | INFO     | api:get_crypto_price:120 - Использована кэшированная цена для криптовалюты BTC/USDT: 95860.99
+2025-02-23 16:47:45.670 | INFO     | scheduler:check_alerts:14 - Проверка алертов...
+2025-02-23 16:47:47.435 | INFO     | api:get_crypto_price:128 - Цена криптовалюты BTC/USDT: 95920.69
+2025-02-23 16:47:47.716 | INFO     | api:get_crypto_price:120 - Использована кэшированная цена для криптовалюты BTC/USDT: 95920.69
+2025-02-23 16:47:47.716 | INFO     | api:get_crypto_price:120 - Использована кэшированная цена для криптовалюты BTC/USDT: 95920.69
+2025-02-23 16:47:47.716 | INFO     | api:get_crypto_price:120 - Использована кэшированная цена для криптовалюты BTC/USDT: 95920.69
+2025-02-23 16:47:47.716 | INFO     | api:get_crypto_price:120 - Использована кэшированная цена для криптовалюты BTC/USDT: 95920.69
+2025-02-23 16:52:45.671 | INFO     | scheduler:check_alerts:14 - Проверка алертов...
+2025-02-23 16:52:45.673 | INFO     | scheduler:update_quotes:38 - Обновление котировок...
+2025-02-23 16:52:47.602 | INFO     | api:get_crypto_price:128 - Цена криптовалюты BTC/USDT: 95925.94
+2025-02-23 16:52:47.881 | INFO     | api:get_crypto_price:120 - Использована кэшированная цена для криптовалюты BTC/USDT: 95925.94
+2025-02-23 16:52:47.881 | INFO     | api:get_crypto_price:120 - Использована кэшированная цена для криптовалюты BTC/USDT: 95925.94
+2025-02-23 16:52:47.881 | INFO     | api:get_crypto_price:120 - Использована кэшированная цена для криптовалюты BTC/USDT: 95925.94
+2025-02-23 16:52:47.881 | INFO     | api:get_crypto_price:120 - Использована кэшированная цена для криптовалюты BTC/USDT: 95925.94
+2025-02-23 16:57:45.666 | INFO     | scheduler:check_alerts:14 - Проверка алертов...
+2025-02-23 16:57:48.069 | INFO     | api:get_crypto_price:128 - Цена криптовалюты BTC/USDT: 95921.94
+2025-02-23 16:57:48.372 | INFO     | api:get_crypto_price:120 - Использована кэшированная цена для криптовалюты BTC/USDT: 95921.94
+2025-02-23 16:57:48.373 | INFO     | api:get_crypto_price:120 - Использована кэшированная цена для криптовалюты BTC/USDT: 95921.94
+2025-02-23 16:57:48.373 | INFO     | api:get_crypto_price:120 - Использована кэшированная цена для криптовалюты BTC/USDT: 95921.94
+2025-02-23 16:57:48.373 | INFO     | api:get_crypto_price:120 - Использована кэшированная цена для криптовалюты BTC/USDT: 95921.94
+2025-02-23 17:02:45.665 | INFO     | scheduler:check_alerts:14 - Проверка алертов...
+2025-02-23 17:02:45.666 | INFO     | scheduler:update_quotes:38 - Обновление котировок...
+2025-02-23 17:02:47.874 | INFO     | api:get_crypto_price:128 - Цена криптовалюты BTC/USDT: 95943.99
+2025-02-23 17:02:48.156 | INFO     | api:get_crypto_price:120 - Использована кэшированная цена для криптовалюты BTC/USDT: 95943.99
+2025-02-23 17:02:48.156 | INFO     | api:get_crypto_price:120 - Использована кэшированная цена для криптовалюты BTC/USDT: 95943.99
+2025-02-23 17:02:48.156 | INFO     | api:get_crypto_price:120 - Использована кэшированная цена для криптовалюты BTC/USDT: 95943.99
+2025-02-23 17:02:48.156 | INFO     | api:get_crypto_price:120 - Использована кэшированная цена для криптовалюты BTC/USDT: 95943.99
+2025-02-23 17:06:33.630 | INFO     | api:get_crypto_price:128 - Цена криптовалюты ETH/USDT: 2808.86
+2025-02-23 17:06:34.123 | INFO     | handlers:cmd_portfolio:159 - Пользователь 5695528909 запросил портфель.
+2025-02-23 17:07:45.664 | INFO     | scheduler:check_alerts:14 - Проверка алертов...
+2025-02-23 17:07:47.934 | INFO     | api:get_crypto_price:128 - Цена криптовалюты BTC/USDT: 95977.99
+2025-02-23 17:07:48.237 | INFO     | api:get_crypto_price:120 - Использована кэшированная цена для криптовалюты BTC/USDT: 95977.99
+2025-02-23 17:07:48.237 | INFO     | api:get_crypto_price:120 - Использована кэшированная цена для криптовалюты BTC/USDT: 95977.99
+2025-02-23 17:07:48.237 | INFO     | api:get_crypto_price:120 - Использована кэшированная цена для криптовалюты BTC/USDT: 95977.99
+2025-02-23 17:07:48.238 | INFO     | api:get_crypto_price:120 - Использована кэшированная цена для криптовалюты BTC/USDT: 95977.99
+2025-02-23 17:11:43.832 | ERROR    | api:get_stock_price_finnhub:66 - Ошибка при получении цены для AAPL через Finnhub: 'Settings' object has no attribute 'FINNHUB_API_KEY'
+2025-02-23 17:11:43.833 | WARNING  | api:get_stock_price:107 - Цена для AAPL не найдена через Finnhub, переходим к следующему API
+2025-02-23 17:11:44.198 | INFO     | api:get_stock_price_yfinance:77 - Цена для AAPL получена через yfinance: 245.5500030517578
+2025-02-23 17:11:44.199 | INFO     | api:get_stock_price:105 - Цена для AAPL получена через yfinance: 245.5500030517578
+2025-02-23 17:11:46.573 | INFO     | api:get_crypto_price:128 - Цена криптовалюты BTC/USDT: 96034.23
+2025-02-23 17:11:49.075 | INFO     | api:get_crypto_price:128 - Цена криптовалюты ETH/USDT: 2811.19
+2025-02-23 17:11:49.490 | INFO     | api:get_stock_price_yfinance:77 - Цена для TSLA получена через yfinance: 337.79998779296875
+2025-02-23 17:11:49.491 | INFO     | api:get_stock_price:105 - Цена для TSLA получена через yfinance: 337.79998779296875
+2025-02-23 17:11:49.713 | INFO     | handlers:cmd_market:535 - Пользователь 413467341 запросил рыночные цены.

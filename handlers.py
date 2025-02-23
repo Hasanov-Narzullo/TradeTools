@@ -1,6 +1,6 @@
 from aiogram import Router, F
 from aiogram.filters import Command
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from aiogram.fsm.context import FSMContext
 from loguru import logger
 from keyboards import main_menu, asset_type_keyboard, alert_condition_keyboard
@@ -12,49 +12,147 @@ from utils import format_portfolio, format_alerts, format_events, format_market_
 
 router = Router()
 
+# Функция для создания инлайн-клавиатуры
+def get_main_menu() -> InlineKeyboardMarkup:
+    """Создает инлайн-клавиатуру с разделами."""
+    keyboard = [
+        [InlineKeyboardButton(text="📊 Котировки и рынок", callback_data="quotes_market")],
+        [InlineKeyboardButton(text="🔔 Оповещения", callback_data="alerts")],
+        [InlineKeyboardButton(text="💼 Портфель", callback_data="portfolio")],
+        [InlineKeyboardButton(text="⚙️ Управление", callback_data="management")]
+    ]
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)
+
+# Функции для подменю
+def get_quotes_market_menu() -> InlineKeyboardMarkup:
+    keyboard = [
+        [InlineKeyboardButton(text="📈 Котировки (/quotes)", callback_data="cmd_quotes")],
+        [InlineKeyboardButton(text="📉 Рынок портфеля (/market)", callback_data="cmd_market")],
+        [InlineKeyboardButton(text="⬅️ Назад", callback_data="back_to_main")]
+    ]
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)
+
+def get_alerts_menu() -> InlineKeyboardMarkup:
+    keyboard = [
+        [InlineKeyboardButton(text="🔔 Установить алерт (/set_alert)", callback_data="cmd_set_alert")],
+        [InlineKeyboardButton(text="📋 Список алертов (/alerts)", callback_data="cmd_alerts")],
+        [InlineKeyboardButton(text="❌ Удалить алерт (/remove_alert)", callback_data="cmd_remove_alert")],
+        [InlineKeyboardButton(text="⬅️ Назад", callback_data="back_to_main")]
+    ]
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)
+
+def get_portfolio_menu() -> InlineKeyboardMarkup:
+    keyboard = [
+        [InlineKeyboardButton(text="➕ Добавить актив (/add_to_portfolio)", callback_data="cmd_add_to_portfolio")],
+        [InlineKeyboardButton(text="➖ Удалить актив (/remove_from_portfolio)", callback_data="cmd_remove_from_portfolio")],
+        [InlineKeyboardButton(text="📂 Показать портфель (/portfolio)", callback_data="cmd_portfolio")],
+        [InlineKeyboardButton(text="⬅️ Назад", callback_data="back_to_main")]
+    ]
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)
+
+def get_management_menu() -> InlineKeyboardMarkup:
+    keyboard = [
+        [InlineKeyboardButton(text="🚀 Начать (/start)", callback_data="cmd_start")],
+        [InlineKeyboardButton(text="ℹ️ Помощь (/help)", callback_data="cmd_help")],
+        [InlineKeyboardButton(text="❌ Отменить (/cancel)", callback_data="cmd_cancel")],
+        [InlineKeyboardButton(text="⬅️ Назад", callback_data="back_to_main")]
+    ]
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)
+
+def get_welcome_help_text() -> str:
+    """Возвращает текст приветствия и помощи с описанием возможностей бота."""
+    return (
+        "👋 Добро пожаловать в бот для управления портфелем и отслеживания активов!\n\n"
+        "📌 **Что я умею:**\n"
+        "— Следить за котировками активов в реальном времени.\n"
+        "— Устанавливать и управлять алертами о достижении целевых цен.\n"
+        "— Управлять вашим портфелем (добавлять/удалять активы, просматривать текущее состояние).\n"
+        "— Показывать рыночные цены активов в вашем портфеле.\n\n"
+        "🔍 **Как использовать:**\n"
+        "— Используйте меню ниже, чтобы выбрать нужный раздел.\n"
+        "— Нажмите на кнопку, чтобы выполнить команду.\n"
+        "— Вы также можете вводить команды вручную (например, /quotes, /portfolio).\n\n"
+        "ℹ️ Для повторного просмотра этого сообщения используйте команду /help."
+    )
+
 
 @router.message(Command("start"))
 async def cmd_start(message: Message):
     """Обработчик команды /start."""
-    await message.answer("Добро пожаловать! Выберите действие:", reply_markup=main_menu())
-    logger.info(f"Пользователь {message.from_user.id} запустил бота.")
+    welcome_text = get_welcome_help_text()
+    await message.answer(welcome_text, reply_markup=get_main_menu())
+    logger.info(f"Пользователь {message.from_user.id} начал работу с ботом.")
 
 @router.message(Command("help"))
 async def cmd_help(message: Message):
     """Обработчик команды /help."""
-    help_text = """
-📋 *Список доступных команд:*
+    help_text = get_welcome_help_text()
+    await message.answer(help_text, reply_markup=get_main_menu())
+    logger.info(f"Пользователь {message.from_user.id} запросил помощь.")
 
-/start - Начать работу с ботом  
-/help - Показать список всех команд и инструкцию  
-/quotes - Котировка в реальном времени  
-/set_alert - Установить оповещение о достижении целевой цены  
-/alerts - Просмотреть установленные алерты
-/remove_alert - Удалить установленный алерт
-/add_to_portfolio - Добавить актив в портфолио  
-/remove_from_portfolio - Удалить актив из портфолио  
-/portfolio - Показать текущее портфолио  
-/market - Показать текущие рыночные цены активов в вашем портфеле  
-/cancel - Отменить последний запрос
+@router.callback_query(F.data == "quotes_market")
+async def show_quotes_market_menu(callback: CallbackQuery):
+    """Показать подменю котировок и рынка."""
+    await callback.message.edit_text("📊 Котировки и рынок:", reply_markup=get_quotes_market_menu())
+    await callback.answer()
 
-📝 *Инструкция:*  
-1. Используйте /add_to_portfolio для добавления актива в портфолио  
-2. Для удаления актива используйте /remove_from_portfolio  
-3. Просматривайте свое портфолио с помощью /portfolio  
-4. Следите за рыночными ценами через /market  
-"""
-    try:
-        await message.answer(help_text, parse_mode=None)
-    except Exception as e:
-        logger.error(f"Ошибка при отправке текста помощи: {e}")
-        await message.answer(
-            "Произошла ошибка при отображении помощи. "
-            "Пожалуйста, используйте команды:\n"
-            "/start, /help, /quote, /set_alert, /add_asset, /remove_asset, /portfolio, /market",
-            parse_mode=None
-        )
+@router.callback_query(F.data == "alerts")
+async def show_alerts_menu(callback: CallbackQuery):
+    """Показать подменю оповещений."""
+    await callback.message.edit_text("🔔 Оповещения:", reply_markup=get_alerts_menu())
+    await callback.answer()
 
+@router.callback_query(F.data == "portfolio")
+async def show_portfolio_menu(callback: CallbackQuery):
+    """Показать подменю портфеля."""
+    await callback.message.edit_text("💼 Портфель:", reply_markup=get_portfolio_menu())
+    await callback.answer()
 
+@router.callback_query(F.data == "management")
+async def show_management_menu(callback: CallbackQuery):
+    """Показать подменю управления."""
+    await callback.message.edit_text("⚙️ Управление:", reply_markup=get_management_menu())
+    await callback.answer()
+
+@router.callback_query(F.data == "back_to_main")
+async def back_to_main_menu(callback: CallbackQuery):
+    """Вернуться в главное меню."""
+    await callback.message.edit_text("📋 Выберите раздел:", reply_markup=get_main_menu())
+    await callback.answer()
+
+# Обработчики команд через callback
+@router.callback_query(F.data.startswith("cmd_"))
+async def handle_command_callback(callback: CallbackQuery):
+    """Обработчик команд через callback."""
+    command = callback.data.replace("cmd_", "")
+    user_id = callback.from_user.id
+
+    # Имитация отправки команды
+    if command == "quotes":
+        await cmd_quotes(callback.message)
+    elif command == "market":
+        await cmd_market(callback.message)
+    elif command == "set_alert":
+        await cmd_set_alert(callback.message)
+    elif command == "alerts":
+        await cmd_alerts(callback.message)
+    elif command == "remove_alert":
+        await cmd_remove_alert(callback.message)
+    elif command == "add_to_portfolio":
+        await cmd_add_to_portfolio(callback.message)
+    elif command == "remove_from_portfolio":
+        await cmd_remove_from_portfolio(callback.message)
+    elif command == "portfolio":
+        await cmd_portfolio(callback.message)
+    elif command == "start":
+        await cmd_start(callback.message)
+    elif command == "help":
+        await cmd_help(callback.message)
+    elif command == "cancel":
+        await cmd_cancel(callback.message)
+
+    await callback.answer()
+    logger.info(f"Пользователь {user_id} выполнил команду через меню: /{command}")
 
 @router.message(Command("quotes"))
 async def cmd_quotes(message: Message, state: FSMContext):
@@ -154,7 +252,7 @@ async def cmd_portfolio(message: Message):
             logger.error(f"Некорректная структура данных актива: {asset}. Отсутствует ключ: {e}")
             continue
 
-    formatted_portfolio = format_portfolio(portfolio_with_prices)
+    formatted_portfolio = await format_portfolio(portfolio_with_prices)
     await message.answer(formatted_portfolio)
     logger.info(f"Пользователь {message.from_user.id} запросил портфель.")
 

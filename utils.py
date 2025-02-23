@@ -1,13 +1,27 @@
 from datetime import datetime
 from html import escape
 from loguru import logger
+from api import get_exchange_rate
 
-def format_portfolio(portfolio):
+
+async def format_portfolio(portfolio):
     """
-    Форматирует портфель для отображения пользователю в Telegram с использованием обычного текста.
+    Форматирует портфель для отображения пользователю в Telegram с учетом сумм вложений и текущих стоимостей.
+    Показывает суммы в рублях и долларах.
     """
     if not portfolio:
         return "Портфель пуст."
+
+    # Инициализируем переменные для сумм
+    total_invested_usd = 0.0  # Сумма вложений в долларах
+    total_value_usd = 0.0     # Текущая стоимость портфеля в долларах
+    stocks_invested_usd = 0.0  # Сумма вложений в акции в долларах
+    stocks_value_usd = 0.0     # Текущая стоимость акций в долларах
+    crypto_invested_usd = 0.0  # Сумма вложений в криптовалюты в долларах
+    crypto_value_usd = 0.0     # Текущая стоимость криптовалют в долларах
+
+    # Получаем курс USD/RUB
+    usd_to_rub = await get_exchange_rate("USD", "RUB")
 
     result = "📊 Ваш портфель:\n\n"
     for asset in portfolio:
@@ -18,6 +32,26 @@ def format_portfolio(portfolio):
             purchase_price = float(asset['purchase_price'])
             current_price = asset.get('current_price')
 
+            # Рассчитываем сумму вложений для актива
+            invested_usd = amount * purchase_price
+            value_usd = amount * current_price if current_price is not None else 0.0
+
+            # Обновляем общие суммы
+            total_invested_usd += invested_usd
+            if current_price is not None:
+                total_value_usd += value_usd
+
+            # Обновляем суммы по типам активов
+            if asset['asset_type'] == "stock":
+                stocks_invested_usd += invested_usd
+                if current_price is not None:
+                    stocks_value_usd += value_usd
+            elif asset['asset_type'] == "crypto":
+                crypto_invested_usd += invested_usd
+                if current_price is not None:
+                    crypto_value_usd += value_usd
+
+            # Форматируем информацию об активе
             result += f"{symbol} ({asset_type})\n"
             result += f"Количество: {amount:.2f}\n"
             result += f"Цена покупки: ${purchase_price:.2f}\n"
@@ -52,6 +86,21 @@ def format_portfolio(portfolio):
             logger.error(f"Ошибка при форматировании данных актива {asset.get('symbol', 'Неизвестный')}: {e}")
             result += f"Ошибка при обработке актива {asset.get('symbol', 'Неизвестный')}\n"
             result += "-" * 20 + "\n"
+
+    # Конвертируем суммы в рубли
+    total_invested_rub = total_invested_usd * usd_to_rub
+    total_value_rub = total_value_usd * usd_to_rub
+    stocks_invested_rub = stocks_invested_usd * usd_to_rub
+    stocks_value_rub = stocks_value_usd * usd_to_rub
+    crypto_invested_rub = crypto_invested_usd * usd_to_rub
+    crypto_value_rub = crypto_value_usd * usd_to_rub
+
+    # Добавляем итоговые суммы
+    result += "\n💰 Итоговые суммы:\n"
+    result += f"Сумма вложений: {total_invested_rub:.2f} руб | ${total_invested_usd:.2f}\n"
+    result += f"Текущая стоимость портфеля: {total_value_rub:.2f} руб | ${total_value_usd:.2f}\n"
+    result += f"Текущая стоимость акций: {stocks_value_rub:.2f} руб | ${stocks_value_usd:.2f}\n"
+    result += f"Текущая стоимость криптовалют: {crypto_value_rub:.2f} руб | ${crypto_value_usd:.2f}\n"
 
     return result
 

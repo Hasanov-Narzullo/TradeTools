@@ -9,6 +9,7 @@ from typing import Optional
 from config import settings
 import ccxt.async_support as ccxt
 from datetime import datetime, timedelta
+from aiocache import cached
 
 _stock_price_cache: dict = {}
 _crypto_price_cache: dict = {}
@@ -163,7 +164,6 @@ async def get_stock_price_with_retry(symbol: str, retries: int = 3, delay: int =
             await sleep(delay)
     return None
 
-
 async def fetch_asset_price(symbol: str, asset_type: str) -> Optional[float]:
     if asset_type == "stock":
         price = await get_stock_price(symbol)
@@ -183,3 +183,23 @@ async def fetch_asset_price_with_retry(symbol: str, asset_type: str, retries: in
         logger.warning(f"Попытка {attempt + 1} не удалась для {symbol} ({asset_type}). Повтор через {delay} секунд.")
         await asyncio.sleep(delay)
     return None
+
+@cached(ttl=3600)
+async def get_exchange_rate(from_currency: str = "USD", to_currency: str = "RUB") -> float:
+    """Получение курса обмена валют через exchangerate-api."""
+    try:
+        url = f"https://api.exchangerate-api.com/v4/latest/{from_currency}"
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as response:
+                data = await response.json()
+                logger.debug(f"Ответ exchangerate-api для {from_currency}/{to_currency}: {data}")
+                if "rates" in data and to_currency in data["rates"]:
+                    rate = float(data["rates"][to_currency])
+                    logger.info(f"Курс {from_currency}/{to_currency}: {rate}")
+                    return rate
+                else:
+                    logger.error(f"Курс для {from_currency}/{to_currency} не найден в ответе exchangerate-api: {data}")
+                    return 90.0  # Фиксированный курс в случае ошибки
+    except Exception as e:
+        logger.error(f"Ошибка при получении курса для {from_currency}/{to_currency}: {e}")
+        return 90.0  # Фиксированный курс в случае ошибки
