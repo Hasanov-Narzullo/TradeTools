@@ -1,8 +1,11 @@
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from loguru import logger
+
+from config import settings
 from database import get_alerts, remove_alert, add_event
 from api import get_stock_price, get_crypto_price
 from bot import bot
+import aiosqlite
 from datetime import datetime, timedelta
 from utils import format_price
 

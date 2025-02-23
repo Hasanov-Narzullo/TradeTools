@@ -668,3 +668,64 @@
 2025-02-23 15:31:31.234 | INFO     | api:get_crypto_price:119 - Использована кэшированная цена для криптовалюты BTC/USDT: 95820.1
 2025-02-23 15:31:31.234 | INFO     | api:get_crypto_price:119 - Использована кэшированная цена для криптовалюты ETH/USDT: 2787.09
 2025-02-23 15:31:31.234 | INFO     | api:get_stock_price:90 - Использована кэшированная цена для акции TSLA: 337.79998779296875
+2025-02-23 15:36:13.815 | INFO     | __main__:<module>:49 - Запуск бота...
+2025-02-23 15:36:13.816 | INFO     | bot:setup_bot:20 - Инициализация бота...
+2025-02-23 15:36:13.816 | INFO     | bot:setup_bot:22 - Хэндлеры зарегистрированы.
+2025-02-23 15:36:13.816 | INFO     | scheduler:setup_scheduler:55 - Планировщик настроен.
+2025-02-23 15:36:13.819 | INFO     | database:init_db:159 - База данных инициализирована.
+2025-02-23 15:36:13.819 | INFO     | bot:on_startup:27 - Бот запущен.
+2025-02-23 15:36:19.353 | ERROR    | api:get_stock_price_alpha_vantage:46 - Ошибка при получении цены для AAPL через Alpha Vantage: 'Settings' object has no attribute 'ALPHA_VANTAGE_API_KEY'
+2025-02-23 15:36:19.354 | WARNING  | api:get_stock_price:106 - Цена для AAPL не найдена через Alpha Vantage, переходим к следующему API
+2025-02-23 15:36:21.105 | INFO     | api:get_stock_price_yfinance:76 - Цена для AAPL получена через yfinance: 245.5500030517578
+2025-02-23 15:36:21.105 | INFO     | api:get_stock_price:104 - Цена для AAPL получена через yfinance: 245.5500030517578
+2025-02-23 15:36:23.776 | INFO     | api:get_crypto_price:127 - Цена криптовалюты BTC/USDT: 95827.41
+2025-02-23 15:36:26.931 | INFO     | api:get_crypto_price:127 - Цена криптовалюты ETH/USDT: 2790.57
+2025-02-23 15:36:27.359 | INFO     | api:get_stock_price_yfinance:76 - Цена для TSLA получена через yfinance: 337.79998779296875
+2025-02-23 15:36:27.360 | INFO     | api:get_stock_price:104 - Цена для TSLA получена через yfinance: 337.79998779296875
+2025-02-23 15:36:27.608 | INFO     | handlers:cmd_portfolio:162 - Пользователь 413467341 запросил портфель.
+2025-02-23 15:36:43.974 | INFO     | handlers:cmd_alerts:544 - Пользователь 413467341 запросил список алертов.
+2025-02-23 15:37:10.394 | INFO     | handlers:cmd_set_alert:282 - Пользователь 413467341 начал настройку алерта.
+2025-02-23 15:37:15.887 | INFO     | api:get_crypto_price:119 - Использована кэшированная цена для криптовалюты BTC/USDT: 95827.41
+2025-02-23 15:37:22.587 | INFO     | database:add_alert:70 - Алерт для BTC/USDT добавлен для пользователя 413467341.
+2025-02-23 15:37:22.734 | INFO     | handlers:alert_condition:396 - Пользователь 413467341 установил алерт: BTC/USDT (crypto) - below $95800.00
+2025-02-23 15:37:29.567 | INFO     | handlers:cmd_alerts:544 - Пользователь 413467341 запросил список алертов.
+2025-02-23 15:37:38.726 | INFO     | handlers:cmd_quotes:64 - Пользователь 413467341 запросил котировки.
+2025-02-23 15:37:41.894 | ERROR    | api:get_stock_price_finnhub:65 - Ошибка при получении цены для SBER через Finnhub: 'Settings' object has no attribute 'FINNHUB_API_KEY'
+2025-02-23 15:37:41.895 | WARNING  | api:get_stock_price:106 - Цена для SBER не найдена через Finnhub, переходим к следующему API
+2025-02-23 15:37:41.895 | ERROR    | api:get_stock_price_alpha_vantage:46 - Ошибка при получении цены для SBER через Alpha Vantage: 'Settings' object has no attribute 'ALPHA_VANTAGE_API_KEY'
+2025-02-23 15:37:41.895 | WARNING  | api:get_stock_price:106 - Цена для SBER не найдена через Alpha Vantage, переходим к следующему API
+2025-02-23 15:37:42.020 | ERROR    | api:get_stock_price_yfinance:79 - Цена для SBER не найдена через yfinance
+2025-02-23 15:37:42.020 | WARNING  | api:get_stock_price:106 - Цена для SBER не найдена через yfinance, переходим к следующему API
+2025-02-23 15:37:42.020 | ERROR    | api:get_stock_price:111 - Не удалось получить цену для SBER через все доступные API
+2025-02-23 15:37:42.113 | INFO     | handlers:get_quote:123 - Пользователь 413467341 запросил цену SBER (stock).
+2025-02-23 15:37:56.674 | INFO     | handlers:cmd_calendar:415 - Пользователь 413467341 запросил календарь событий.
+2025-02-23 15:38:56.180 | INFO     | __main__:<module>:49 - Запуск бота...
+2025-02-23 15:38:56.180 | INFO     | bot:setup_bot:20 - Инициализация бота...
+2025-02-23 15:38:56.181 | INFO     | bot:setup_bot:22 - Хэндлеры зарегистрированы.
+2025-02-23 15:38:56.181 | INFO     | scheduler:setup_scheduler:55 - Планировщик настроен.
+2025-02-23 15:38:56.183 | INFO     | database:init_db:159 - База данных инициализирована.
+2025-02-23 15:38:56.183 | INFO     | bot:on_startup:27 - Бот запущен.
+2025-02-23 15:38:59.604 | INFO     | handlers:cmd_alerts:544 - Пользователь 413467341 запросил список алертов.
+2025-02-23 15:43:56.184 | INFO     | scheduler:check_alerts:11 - Проверка алертов...
+2025-02-23 15:46:42.302 | INFO     | handlers:cmd_alerts:544 - Пользователь 413467341 запросил список алертов.
+2025-02-23 15:46:50.300 | INFO     | handlers:cmd_quotes:64 - Пользователь 413467341 запросил котировки.
+2025-02-23 15:46:56.463 | ERROR    | api:get_stock_price_finnhub:65 - Ошибка при получении цены для AAPL через Finnhub: 'Settings' object has no attribute 'FINNHUB_API_KEY'
+2025-02-23 15:46:56.464 | WARNING  | api:get_stock_price:106 - Цена для AAPL не найдена через Finnhub, переходим к следующему API
+2025-02-23 15:46:56.464 | ERROR    | api:get_stock_price_alpha_vantage:46 - Ошибка при получении цены для AAPL через Alpha Vantage: 'Settings' object has no attribute 'ALPHA_VANTAGE_API_KEY'
+2025-02-23 15:46:56.464 | WARNING  | api:get_stock_price:106 - Цена для AAPL не найдена через Alpha Vantage, переходим к следующему API
+2025-02-23 15:46:57.128 | INFO     | api:get_stock_price_yfinance:76 - Цена для AAPL получена через yfinance: 245.5500030517578
+2025-02-23 15:46:57.128 | INFO     | api:get_stock_price:104 - Цена для AAPL получена через yfinance: 245.5500030517578
+2025-02-23 15:46:57.211 | INFO     | handlers:get_quote:123 - Пользователь 413467341 запросил цену AAPL (stock).
+2025-02-23 15:46:59.344 | INFO     | handlers:cmd_quotes:64 - Пользователь 413467341 запросил котировки.
+2025-02-23 15:47:08.300 | INFO     | api:get_crypto_price:127 - Цена криптовалюты BTC/USDT: 95774.95
+2025-02-23 15:47:08.682 | INFO     | handlers:get_quote:123 - Пользователь 413467341 запросил цену BTC/USDT (crypto).
+2025-02-23 15:48:56.187 | INFO     | scheduler:check_alerts:11 - Проверка алертов...
+2025-02-23 15:48:56.192 | INFO     | scheduler:update_quotes:35 - Обновление котировок...
+2025-02-23 15:49:43.508 | INFO     | api:get_stock_price:90 - Использована кэшированная цена для акции AAPL: 245.5500030517578
+2025-02-23 15:49:45.965 | INFO     | api:get_crypto_price:127 - Цена криптовалюты BTC/USDT: 95720.0
+2025-02-23 15:49:48.814 | INFO     | api:get_crypto_price:127 - Цена криптовалюты ETH/USDT: 2785.46
+2025-02-23 15:49:49.119 | ERROR    | api:get_stock_price_alpha_vantage:46 - Ошибка при получении цены для TSLA через Alpha Vantage: 'Settings' object has no attribute 'ALPHA_VANTAGE_API_KEY'
+2025-02-23 15:49:49.120 | WARNING  | api:get_stock_price:106 - Цена для TSLA не найдена через Alpha Vantage, переходим к следующему API
+2025-02-23 15:49:49.396 | INFO     | api:get_stock_price_yfinance:76 - Цена для TSLA получена через yfinance: 337.79998779296875
+2025-02-23 15:49:49.397 | INFO     | api:get_stock_price:104 - Цена для TSLA получена через yfinance: 337.79998779296875
+2025-02-23 15:49:49.688 | INFO     | handlers:cmd_portfolio:162 - Пользователь 413467341 запросил портфель.

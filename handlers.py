@@ -80,7 +80,6 @@ async def get_quote(message: Message, state: FSMContext):
     data = await state.get_data()
     asset_type = data["asset_type"]
 
-    # Проверяем, не является ли ввод командой
     if symbol.startswith('/'):
         await message.answer(
             "Пожалуйста, введите символ актива (например, AAPL или BTC/USDT), а не команду."
@@ -91,17 +90,15 @@ async def get_quote(message: Message, state: FSMContext):
 
     price = None
     if asset_type == "stock":
-        # Проверяем, является ли символ допустимым тикером для акций (только буквы)
-        if not symbol.isalpha():
+        if not symbol.isalpha() and not symbol.endswith(".ME"):
             await message.answer(
-                "Недопустимый тикер акции. Пожалуйста, введите символ, состоящий только из букв (например, AAPL)."
+                "Недопустимый тикер акции. Пожалуйста, введите символ, состоящий только из букв (например, AAPL) или с суффиксом .ME (например, SBER.ME)."
             )
             await state.clear()
             logger.warning(f"Недопустимый тикер акции: {symbol}")
             return
         price = await get_stock_price(symbol)
     elif asset_type == "crypto":
-        # Проверяем, является ли символ допустимым тикером для криптовалют (содержит '/')
         if '/' not in symbol:
             await message.answer(
                 "Недопустимый тикер криптовалюты. Пожалуйста, введите символ в формате 'BTC/USDT'."
@@ -212,20 +209,41 @@ async def get_quote(message: Message, state: FSMContext):
 
 @router.message(PortfolioState.adding_symbol)
 async def add_symbol(message: Message, state: FSMContext):
+    """Обработчик ввода символа актива для добавления в портфель."""
+    user_id = message.from_user.id
     symbol = message.text.strip().upper()
     data = await state.get_data()
     asset_type = data["asset_type"]
 
+    # Проверяем, не является ли ввод командой
+    if symbol.startswith('/'):
+        await message.answer(
+            "Пожалуйста, введите символ актива (например, AAPL или BTC/USDT), а не команду."
+        )
+        await state.clear()
+        logger.info(f"Пользователь {user_id} ввел команду вместо символа: {symbol}")
+        return
+
     # Валидация символа
-    # ... (проверка на команду и формат символа, как выше)
-
-    # Проверка существования актива
-    price = None
     if asset_type == "stock":
-        price = await get_stock_price(symbol)
+        if not symbol.isalpha() and not symbol.endswith(".ME"):
+            await message.answer(
+                "Недопустимый тикер акции. Пожалуйста, введите символ, состоящий только из букв (например, AAPL) или с суффиксом .ME (например, SBER.ME)."
+            )
+            await state.clear()
+            logger.warning(f"Недопустимый тикер акции: {symbol}")
+            return
     elif asset_type == "crypto":
-        price = await get_crypto_price(symbol)
+        if '/' not in symbol:
+            await message.answer(
+                "Недопустимый тикер криптовалюты. Пожалуйста, введите символ в формате 'BTC/USDT'."
+            )
+            await state.clear()
+            logger.warning(f"Недопустимый тикер криптовалюты: {symbol}")
+            return
 
+    # Проверка существования актива через API
+    price = await fetch_asset_price(symbol, asset_type)
     if price is None:
         await message.answer(
             "Не удалось проверить существование актива. Возможно, символ некорректен или возникла ошибка. "
@@ -238,9 +256,12 @@ async def add_symbol(message: Message, state: FSMContext):
     await state.update_data(symbol=symbol)
     await message.answer("Введите количество актива:")
     await state.set_state(PortfolioState.adding_amount)
+    logger.info(f"Пользователь {user_id} ввел символ {symbol} для добавления в портфель.")
 
 @router.message(PortfolioState.adding_amount)
 async def add_amount(message: Message, state: FSMContext):
+    """Обработчик ввода количества актива."""
+    user_id = message.from_user.id
     try:
         amount = float(message.text)
         if amount <= 0:
@@ -251,9 +272,12 @@ async def add_amount(message: Message, state: FSMContext):
         await state.set_state(PortfolioState.adding_price)
     except ValueError:
         await message.answer("Пожалуйста, введите число.")
+    logger.info(f"Пользователь {user_id} ввел количество актива: {message.text}")
 
 @router.message(PortfolioState.adding_price)
 async def add_price(message: Message, state: FSMContext):
+    """Обработчик ввода цены покупки."""
+    user_id = message.from_user.id
     try:
         price = float(message.text)
         if price <= 0:
@@ -261,7 +285,7 @@ async def add_price(message: Message, state: FSMContext):
             return
         data = await state.get_data()
         await add_to_portfolio(
-            user_id=message.from_user.id,
+            user_id=user_id,
             asset_type=data["asset_type"],
             symbol=data["symbol"],
             amount=data["amount"],
@@ -269,10 +293,13 @@ async def add_price(message: Message, state: FSMContext):
         )
         await message.answer("Актив добавлен в портфель!")
         await state.clear()
-        logger.info(f"Пользователь {message.from_user.id} добавил актив в портфель.")
+        logger.info(f"Пользователь {user_id} добавил актив в портфель: {data['symbol']} ({data['asset_type']})")
     except ValueError:
         await message.answer("Пожалуйста, введите число.")
-
+    except Exception as e:
+        await message.answer("Произошла ошибка при добавлении актива. Пожалуйста, попробуйте снова.")
+        logger.error(f"Ошибка при добавлении актива для пользователя {user_id}: {e}")
+        await state.clear()
 
 @router.message(Command("set_alert"))
 async def cmd_set_alert(message: Message, state: FSMContext):
@@ -428,14 +455,13 @@ async def cmd_remove_from_portfolio(message: Message, state: FSMContext):
         logger.info(f"Пользователь {user_id} запросил удаление актива (портфель пуст).")
         return
 
-    # Показываем пользователю список активов в портфеле
     formatted_portfolio = format_portfolio(portfolio)
     await message.answer(
         f"Ваш портфель:\n{formatted_portfolio}\n"
-        "Введите символ актива, который хотите удалить (например, AAPL или BTC/USDT):",
-        parse_mode="MarkdownV2"
+        "Введите символ актива, который хотите удалить (например, AAPL или BTC/USDT):"
     )
     await state.set_state(PortfolioState.removing_symbol)
+    logger.info(f"Пользователь {user_id} начал удаление актива из портфеля.")
 
 @router.message(PortfolioState.removing_symbol)
 async def remove_symbol_handler(message: Message, state: FSMContext):
@@ -443,7 +469,6 @@ async def remove_symbol_handler(message: Message, state: FSMContext):
     user_id = message.from_user.id
     symbol = message.text.strip().upper()
 
-    # Проверяем, не является ли ввод командой
     if symbol.startswith('/'):
         await message.answer(
             "Пожалуйста, введите символ актива (например, AAPL или BTC/USDT), а не команду."
@@ -453,7 +478,6 @@ async def remove_symbol_handler(message: Message, state: FSMContext):
         return
 
     try:
-        # Проверяем, есть ли актив в портфеле
         portfolio = await get_portfolio(user_id)
         asset_exists = any(asset['symbol'] == symbol for asset in portfolio)
 
@@ -466,7 +490,6 @@ async def remove_symbol_handler(message: Message, state: FSMContext):
             logger.warning(f"Актив {symbol} не найден в портфеле пользователя {user_id}")
             return
 
-        # Удаляем актив из портфеля
         await remove_from_portfolio(user_id, symbol)
         await message.answer(f"Актив {symbol} успешно удален из портфеля.")
         logger.info(f"Пользователь {user_id} удалил актив {symbol} из портфеля.")
