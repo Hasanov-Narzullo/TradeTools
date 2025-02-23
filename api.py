@@ -1,15 +1,14 @@
 import random
 import yfinance as yf
 import ccxt
-from asyncio import sleep
 import aiohttp
 import asyncio
+from asyncio import sleep
 from loguru import logger
 from typing import Optional
 from config import settings
 import ccxt.async_support as ccxt
 from datetime import datetime, timedelta
-
 
 _stock_price_cache: dict = {}
 _crypto_price_cache: dict = {}
@@ -17,6 +16,7 @@ STOCK_CACHE_TIMEOUT = 600  # 10 минут
 CRYPTO_CACHE_TIMEOUT = 120  # 2 минуты
 
 def clean_cache():
+    """Очистка устаревших записей из кэша."""
     current_time = datetime.now()
     for symbol in list(_stock_price_cache.keys()):
         price, timestamp = _stock_price_cache[symbol]
@@ -28,6 +28,7 @@ def clean_cache():
             del _crypto_price_cache[symbol]
 
 async def get_stock_price_alpha_vantage(symbol: str) -> Optional[float]:
+    """Получение цены акции через Alpha Vantage."""
     try:
         url = f"https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol={symbol}&apikey={settings.ALPHA_VANTAGE_API_KEY}"
         async with aiohttp.ClientSession() as session:
@@ -46,6 +47,7 @@ async def get_stock_price_alpha_vantage(symbol: str) -> Optional[float]:
         return None
 
 async def get_stock_price_finnhub(symbol: str) -> Optional[float]:
+    """Получение цены акции через Finnhub."""
     try:
         url = f"https://finnhub.io/api/v1/quote?symbol={symbol}&token={settings.FINNHUB_API_KEY}"
         async with aiohttp.ClientSession() as session:
@@ -64,6 +66,7 @@ async def get_stock_price_finnhub(symbol: str) -> Optional[float]:
         return None
 
 async def get_stock_price_yfinance(symbol: str) -> Optional[float]:
+    """Получение цены акции через yfinance."""
     try:
         ticker = yf.Ticker(symbol + ".ME" if symbol in ["SBER", "GAZP", "LKOH"] else symbol)
         data = ticker.history(period="1d")
@@ -80,6 +83,7 @@ async def get_stock_price_yfinance(symbol: str) -> Optional[float]:
         return None
 
 async def get_stock_price(symbol: str) -> Optional[float]:
+    """Получение цены акции с переключением между API."""
     if symbol in _stock_price_cache:
         price, timestamp = _stock_price_cache[symbol]
         if (datetime.now() - timestamp).total_seconds() < STOCK_CACHE_TIMEOUT:
@@ -108,64 +112,10 @@ async def get_stock_price(symbol: str) -> Optional[float]:
     return None
 
 async def get_crypto_price(symbol: str) -> Optional[float]:
+    """Получение цены криптовалюты через ccxt."""
     if symbol in _crypto_price_cache:
         price, timestamp = _crypto_price_cache[symbol]
         if (datetime.now() - timestamp).total_seconds() < CRYPTO_CACHE_TIMEOUT:
-            logger.info(f"Использована кэшированная цена для криптовалюты {symbol}: {price}")
-            return price
-
-    try:
-        exchange = ccxt.binance()
-        ticker = await exchange.fetch_ticker(symbol)
-        price = ticker['last']
-        _crypto_price_cache[symbol] = (price, datetime.now())
-        logger.info(f"Цена криптовалюты {symbol}: {price}")
-        return price
-    except Exception as e:
-        logger.error(f"Ошибка при получении цены для {symbol} через ccxt: {e}")
-        return None
-    finally:
-        await exchange.close()
-
-async def fetch_asset_price(symbol: str, asset_type: str) -> Optional[float]:
-    if asset_type == "stock":
-        return await get_stock_price(symbol)
-    elif asset_type == "crypto":
-        return await get_crypto_price(symbol)
-    return None
-
-async def get_stock_price(symbol: str) -> Optional[float]:
-    """Получение цены акции с переключением между API."""
-    # Проверка кэша
-    if symbol in _stock_price_cache:
-        price, timestamp = _stock_price_cache[symbol]
-        if (datetime.now() - timestamp).total_seconds() < STOCK_CACHE_TIMEOUT:
-            logger.info(f"Использована кэшированная цена для акции {symbol}: {price}")
-            return price
-
-    # Попытка получения цены из трех API
-    apis = [
-        (get_stock_price_alpha_vantage, "Alpha Vantage"),
-        (get_stock_price_yfinance(), "Yfinance"),
-        (get_stock_price_finnhub, "Finnhub")
-    ]
-
-    for api_func, api_name in apis:
-        price = await api_func(symbol)
-        if price is not None:
-            logger.info(f"Цена для {symbol} получена через {api_name}: {price}")
-            return price
-        logger.warning(f"Цена для {symbol} не найдена через {api_name}, переходим к следующему API")
-
-    logger.error(f"Не удалось получить цену для {symbol} через все доступные API")
-    return None
-
-async def get_crypto_price(symbol: str) -> Optional[float]:
-    """Получение цены криптовалюты через ccxt (без изменений)."""
-    # Проверка кэша
-    if symbol in _crypto_price_cache:
-        price, timestamp = _crypto_price_cache[symbol]
-        if (datetime.now() - timestamp).total_seconds() < CRYPTO_CACHE_TIMEOUT :
             logger.info(f"Использована кэшированная цена для криптовалюты {symbol}: {price}")
             return price
 
