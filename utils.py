@@ -1,7 +1,6 @@
-from loguru import logger
 from datetime import datetime
 from html import escape
-
+from loguru import logger
 
 def format_portfolio(portfolio):
     """

@@ -130,14 +130,13 @@ async def cmd_portfolio(message: Message):
 
     if not portfolio:
         await message.answer(
-            "Ваш портфель сейчас пуст. 😔<br>"
+            "Ваш портфель сейчас пуст. 😔<br/>"
             "Используйте команду /add_to_portfolio, чтобы добавить активы в портфель.",
             parse_mode="HTML"
         )
         logger.info(f"Пользователь {message.from_user.id} запросил портфель (пустой).")
         return
 
-    # Подготовка данных для отображения
     portfolio_with_prices = []
     for asset in portfolio:
         try:
@@ -146,10 +145,7 @@ async def cmd_portfolio(message: Message):
             amount = asset['amount']
             purchase_price = asset['purchase_price']
 
-            # Получение текущей цены
             current_price = await fetch_asset_price(symbol, asset_type)
-
-            # Формирование данных актива
             asset_data = {
                 'symbol': symbol,
                 'asset_type': asset_type,
@@ -158,12 +154,10 @@ async def cmd_portfolio(message: Message):
                 'current_price': current_price
             }
             portfolio_with_prices.append(asset_data)
-
         except KeyError as e:
             logger.error(f"Некорректная структура данных актива: {asset}. Отсутствует ключ: {e}")
             continue
 
-    # Форматирование портфеля
     formatted_portfolio = format_portfolio(portfolio_with_prices)
     await message.answer(formatted_portfolio, parse_mode="HTML")
     logger.info(f"Пользователь {message.from_user.id} запросил портфель.")

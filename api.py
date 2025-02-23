@@ -1,9 +1,6 @@
 import random
-
 import yfinance as yf
 import ccxt
-from typing import Optional, Dict, Tuple
-import time
 from asyncio import sleep
 import aiohttp
 import asyncio
@@ -97,11 +94,15 @@ async def get_stock_price(symbol: str) -> Optional[float]:
     random.shuffle(apis)
 
     for api_func, api_name in apis:
-        price = await api_func(symbol)  # Передаем symbol при вызове
-        if price is not None:
-            logger.info(f"Цена для {symbol} получена через {api_name}: {price}")
-            return price
-        logger.warning(f"Цена для {symbol} не найдена через {api_name}, переходим к следующему API")
+        try:
+            price = await api_func(symbol)  # Передаем symbol при вызове
+            if price is not None:
+                logger.info(f"Цена для {symbol} получена через {api_name}: {price}")
+                return price
+            logger.warning(f"Цена для {symbol} не найдена через {api_name}, переходим к следующему API")
+        except Exception as e:
+            logger.error(f"Ошибка при вызове {api_name} для {symbol}: {e}")
+            continue
 
     logger.error(f"Не удалось получить цену для {symbol} через все доступные API")
     return None
