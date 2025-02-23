@@ -1,0 +1,71 @@
+[33mcommit 5f012d9918b897d3760e4f3e4875e9a2d6281de1[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m, [m[1;31morigin/master[m[33m)[m
+Author: ILNARKHUSNULLIN <darkangel.python@gmail.com>
+Date:   Sun Feb 23 17:52:09 2025 +0300
+
+    portfolio bags fix
+
+[33mcommit 83c81b6e98e4b67a5bec39771632a731dd342414[m
+Author: ILNARKHUSNULLIN <darkangel.python@gmail.com>
+Date:   Sun Feb 23 17:36:56 2025 +0300
+
+    inline board errors changed
+
+[33mcommit 931f60f9a8418143260237e084390279f39d454f[m
+Author: ILNARKHUSNULLIN <darkangel.python@gmail.com>
+Date:   Sun Feb 23 17:12:47 2025 +0300
+
+    inline board added
+
+[33mcommit 03600417b2950ccc99fea6eaa611fbdb29e40cce[m
+Author: ILNARKHUSNULLIN <darkangel.python@gmail.com>
+Date:   Sun Feb 23 16:21:01 2025 +0300
+
+    added tests, added usd/rub info in portfolio
+
+[33mcommit 9d2c61645180d41e004c7ca8687d7cc94d882068[m
+Author: ILNARKHUSNULLIN <darkangel.python@gmail.com>
+Date:   Sun Feb 23 15:53:33 2025 +0300
+
+    fixed alert checking errors
+
+[33mcommit 5a4c71d50f2db383688d6e99bd7375752e657dff[m
+Author: ILNARKHUSNULLIN <darkangel.python@gmail.com>
+Date:   Sun Feb 23 15:36:07 2025 +0300
+
+    fixed html errors 2.0
+
+[33mcommit 3183bb2cf75c56d93bcf2ba53e1d393e484482f2[m
+Author: ILNARKHUSNULLIN <darkangel.python@gmail.com>
+Date:   Sun Feb 23 15:29:47 2025 +0300
+
+    fixed html errors
+
+[33mcommit 2189db8cbfe03b759edf6d7f0c8cad2036b263e2[m
+Author: ILNARKHUSNULLIN <darkangel.python@gmail.com>
+Date:   Sun Feb 23 15:24:35 2025 +0300
+
+    changes in api_py
+
+[33mcommit b23a157cbc0eb1ff1c5e661ec094b36af5c9fabd[m
+Author: ILNARKHUSNULLIN <darkangel.python@gmail.com>
+Date:   Sun Feb 23 15:19:04 2025 +0300
+
+    changes 3.0
+
+[33mcommit 0b3c555014da80b5f7e3c984890d26bbbcc481ca[m
+Author: ILNARKHUSNULLIN <darkangel.python@gmail.com>
+Date:   Sun Feb 23 15:11:46 2025 +0300
+
+    changes 2.0
+
+[33mcommit a9f2d1037c4ed76d7ece95cca7e722ec603b469b[m
+Author: ILNARKHUSNULLIN <darkangel.python@gmail.com>
+Date:   Sun Feb 23 15:05:39 2025 +0300
+
+    change Tinkoff Api to Yfinance
+
+[33mcommit e6b443a2751613abc7a506b49ad7ec24af8ff69f[m
+Author: ILNARKHUSNULLIN <darkangel.python@gmail.com>
+Date:   Sun Feb 23 14:41:08 2025 +0300
+
+    Initialization
