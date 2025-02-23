@@ -4,12 +4,12 @@ from loguru import logger
 
 def format_portfolio(portfolio):
     """
-    Форматирует портфель для отображения пользователю в Telegram с использованием HTML.
+    Форматирует портфель для отображения пользователю в Telegram с использованием обычного текста.
     """
     if not portfolio:
         return "Портфель пуст."
 
-    result = "<b>📊 Ваш портфель:</b><br>"
+    result = "📊 Ваш портфель:\n\n"
     for asset in portfolio:
         try:
             symbol = asset['symbol']
@@ -18,60 +18,60 @@ def format_portfolio(portfolio):
             purchase_price = float(asset['purchase_price'])
             current_price = asset.get('current_price')
 
-            result += f"<b>{escape(symbol)}</b> ({escape(asset_type)})<br>"
-            result += f"Количество: {amount:.2f}<br>"
-            result += f"Цена покупки: ${purchase_price:.2f}<br>"
+            result += f"{symbol} ({asset_type})\n"
+            result += f"Количество: {amount:.2f}\n"
+            result += f"Цена покупки: ${purchase_price:.2f}\n"
 
             if current_price is not None:
                 try:
                     current_price_float = float(current_price)
-                    result += f"Текущая цена: ${current_price_float:.2f}<br>"
+                    result += f"Текущая цена: ${current_price_float:.2f}\n"
                 except (ValueError, TypeError):
                     logger.error(f"Некорректное значение текущей цены для {symbol}: {current_price}")
-                    result += "Текущая цена: Не удалось получить<br>"
+                    result += "Текущая цена: Не удалось получить\n"
             else:
-                result += "Текущая цена: Не удалось получить<br>"
+                result += "Текущая цена: Не удалось получить\n"
 
             if current_price is not None and purchase_price != 0:
                 try:
                     percentage_change = ((current_price_float - purchase_price) / purchase_price) * 100
                     change_emoji = "📈" if percentage_change >= 0 else "📉"
-                    result += f"Изменение: {change_emoji} {percentage_change:+.2f}%<br>"
+                    result += f"Изменение: {change_emoji} {percentage_change:+.2f}%\n"
                 except (ValueError, TypeError) as e:
                     logger.error(f"Ошибка при расчете процента изменения для {symbol}: {e}")
-                    result += "Изменение: Н/Д<br>"
+                    result += "Изменение: Н/Д\n"
             else:
-                result += "Изменение: Н/Д<br>"
+                result += "Изменение: Н/Д\n"
 
-            result += "-" * 20 + "<br>"
+            result += "-" * 20 + "\n"
         except KeyError as e:
             logger.error(f"Некорректная структура данных актива: {asset}. Отсутствует ключ: {e}")
-            result += f"Ошибка при обработке актива {escape(asset.get('symbol', 'Неизвестный'))}<br>"
-            result += "-" * 20 + "<br>"
+            result += f"Ошибка при обработке актива {asset.get('symbol', 'Неизвестный')}\n"
+            result += "-" * 20 + "\n"
         except (ValueError, TypeError) as e:
             logger.error(f"Ошибка при форматировании данных актива {asset.get('symbol', 'Неизвестный')}: {e}")
-            result += f"Ошибка при обработке актива {escape(asset.get('symbol', 'Неизвестный'))}<br>"
-            result += "-" * 20 + "<br>"
+            result += f"Ошибка при обработке актива {asset.get('symbol', 'Неизвестный')}\n"
+            result += "-" * 20 + "\n"
 
     return result
 
 def format_alerts(alerts: list) -> str:
-    """Форматирование списка алертов для вывода в формате HTML."""
+    """Форматирование списка алертов для вывода в формате обычного текста."""
     if not alerts:
         return "Алерты не установлены."
 
-    result = "<b>🔔 Ваши алерты:</b><br>"
+    result = "🔔 Ваши алерты:\n\n"
     for alert in alerts:
         alert_id, user_id, asset_type, symbol, target_price, condition, created_at = alert
         asset_type_display = "Акция" if asset_type == "stock" else "Криптовалюта"
         condition_display = "выше" if condition == "above" else "ниже"
         result += (
-            f"ID: {escape(str(alert_id))}<br>"
-            f"Актив: {escape(symbol)} ({escape(asset_type_display)})<br>"
-            f"Целевая цена: {escape(str(target_price))}<br>"
-            f"Условие: {escape(condition_display)}<br>"
-            f"Дата создания: {escape(str(created_at))}<br>"
-            f"{'-' * 30}<br>"
+            f"ID: {str(alert_id)}\n"
+            f"Актив: {symbol} ({asset_type_display})\n"
+            f"Целевая цена: {str(target_price)}\n"
+            f"Условие: {condition_display}\n"
+            f"Дата создания: {str(created_at)}\n"
+            f"{'-' * 30}\n"
         )
     return result
 
@@ -113,12 +113,12 @@ def format_price(price: float) -> str:
 def format_market_prices(portfolio):
     """
     Форматирует текущие рыночные цены активов в формате 'Тикер | Стоимость' для команды /market.
-    Использует HTML для форматирования.
+    Использует обычный текст для форматирования.
     """
     if not portfolio:
         return "Портфель пуст."
 
-    result = "<b>📈 Текущие рыночные цены:</b><br>"
+    result = "📈 Текущие рыночные цены:\n\n"
     for asset in portfolio:
         try:
             symbol = asset['symbol']
@@ -127,18 +127,18 @@ def format_market_prices(portfolio):
             if current_price is not None:
                 try:
                     current_price_float = float(current_price)
-                    result += f"<b>{escape(symbol)}</b> | ${current_price_float:.2f}<br>"
+                    result += f"{symbol} | ${current_price_float:.2f}\n"
                 except (ValueError, TypeError):
                     logger.error(f"Некорректное значение текущей цены для {symbol}: {current_price}")
-                    result += f"<b>{escape(symbol)}</b> | Не удалось получить<br>"
+                    result += f"{symbol} | Не удалось получить\n"
             else:
-                result += f"<b>{escape(symbol)}</b> | Не удалось получить<br>"
+                result += f"{symbol} | Не удалось получить\n"
 
-            result += "-" * 20 + "<br>"
+            result += "-" * 20 + "\n"
         except KeyError as e:
             logger.error(f"Некорректная структура данных актива: {asset}. Отсутствует ключ: {e}")
-            result += f"Ошибка при обработке актива {escape(asset.get('symbol', 'Неизвестный'))}<br>"
-            result += "-" * 20 + "<br>"
+            result += f"Ошибка при обработке актива {asset.get('symbol', 'Неизвестный')}\n"
+            result += "-" * 20 + "\n"
 
     return result
 

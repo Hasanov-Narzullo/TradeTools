@@ -648,3 +648,23 @@
 2025-02-23 15:26:20.165 | INFO     | api:get_crypto_price:119 - Использована кэшированная цена для криптовалюты BTC/USDT: 95876.99
 2025-02-23 15:26:22.462 | INFO     | api:get_crypto_price:127 - Цена криптовалюты ETH/USDT: 2788.38
 2025-02-23 15:26:22.771 | INFO     | api:get_stock_price:90 - Использована кэшированная цена для акции TSLA: 337.79998779296875
+2025-02-23 15:30:41.746 | INFO     | __main__:<module>:49 - Запуск бота...
+2025-02-23 15:30:41.747 | INFO     | bot:setup_bot:20 - Инициализация бота...
+2025-02-23 15:30:41.747 | INFO     | bot:setup_bot:22 - Хэндлеры зарегистрированы.
+2025-02-23 15:30:41.748 | INFO     | scheduler:setup_scheduler:55 - Планировщик настроен.
+2025-02-23 15:30:41.750 | INFO     | database:init_db:159 - База данных инициализирована.
+2025-02-23 15:30:41.750 | INFO     | bot:on_startup:27 - Бот запущен.
+2025-02-23 15:30:45.522 | ERROR    | api:get_stock_price_finnhub:65 - Ошибка при получении цены для AAPL через Finnhub: 'Settings' object has no attribute 'FINNHUB_API_KEY'
+2025-02-23 15:30:45.523 | WARNING  | api:get_stock_price:106 - Цена для AAPL не найдена через Finnhub, переходим к следующему API
+2025-02-23 15:30:46.227 | INFO     | api:get_stock_price_yfinance:76 - Цена для AAPL получена через yfinance: 245.5500030517578
+2025-02-23 15:30:46.228 | INFO     | api:get_stock_price:104 - Цена для AAPL получена через yfinance: 245.5500030517578
+2025-02-23 15:30:48.710 | INFO     | api:get_crypto_price:127 - Цена криптовалюты BTC/USDT: 95820.1
+2025-02-23 15:30:51.434 | INFO     | api:get_crypto_price:127 - Цена криптовалюты ETH/USDT: 2787.09
+2025-02-23 15:30:51.735 | ERROR    | api:get_stock_price_alpha_vantage:46 - Ошибка при получении цены для TSLA через Alpha Vantage: 'Settings' object has no attribute 'ALPHA_VANTAGE_API_KEY'
+2025-02-23 15:30:51.736 | WARNING  | api:get_stock_price:106 - Цена для TSLA не найдена через Alpha Vantage, переходим к следующему API
+2025-02-23 15:30:51.886 | INFO     | api:get_stock_price_yfinance:76 - Цена для TSLA получена через yfinance: 337.79998779296875
+2025-02-23 15:30:51.886 | INFO     | api:get_stock_price:104 - Цена для TSLA получена через yfinance: 337.79998779296875
+2025-02-23 15:31:31.233 | INFO     | api:get_stock_price:90 - Использована кэшированная цена для акции AAPL: 245.5500030517578
+2025-02-23 15:31:31.234 | INFO     | api:get_crypto_price:119 - Использована кэшированная цена для криптовалюты BTC/USDT: 95820.1
+2025-02-23 15:31:31.234 | INFO     | api:get_crypto_price:119 - Использована кэшированная цена для криптовалюты ETH/USDT: 2787.09
+2025-02-23 15:31:31.234 | INFO     | api:get_stock_price:90 - Использована кэшированная цена для акции TSLA: 337.79998779296875

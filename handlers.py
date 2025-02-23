@@ -130,9 +130,8 @@ async def cmd_portfolio(message: Message):
 
     if not portfolio:
         await message.answer(
-            "Ваш портфель сейчас пуст. 😔<br>"
-            "Используйте команду /add_to_portfolio, чтобы добавить активы в портфель.",
-            parse_mode="HTML"
+            "Ваш портфель сейчас пуст. 😔\n"
+            "Используйте команду /add_to_portfolio, чтобы добавить активы в портфель."
         )
         logger.info(f"Пользователь {message.from_user.id} запросил портфель (пустой).")
         return
@@ -159,7 +158,7 @@ async def cmd_portfolio(message: Message):
             continue
 
     formatted_portfolio = format_portfolio(portfolio_with_prices)
-    await message.answer(formatted_portfolio, parse_mode="HTML")
+    await message.answer(formatted_portfolio)
     logger.info(f"Пользователь {message.from_user.id} запросил портфель.")
 
 
@@ -486,9 +485,8 @@ async def cmd_market(message: Message):
 
     if not portfolio:
         await message.answer(
-            "Ваш портфель сейчас пуст. 😔<br>"
-            "Используйте команду /add_to_portfolio, чтобы добавить активы в портфель.",
-            parse_mode="HTML"
+            "Ваш портфель сейчас пуст. 😔\n"
+            "Используйте команду /add_to_portfolio, чтобы добавить активы в портфель."
         )
         logger.info(f"Пользователь {user_id} запросил рыночные цены (портфель пуст).")
         return
@@ -510,7 +508,7 @@ async def cmd_market(message: Message):
             continue
 
     formatted_prices = format_market_prices(portfolio_with_prices)
-    await message.answer(formatted_prices, parse_mode="HTML")
+    await message.answer(formatted_prices)
     logger.info(f"Пользователь {user_id} запросил рыночные цены.")
 
 def register_handlers(dp: Router):
@@ -542,7 +540,7 @@ async def cmd_alerts(message: Message):
         return
 
     formatted_alerts = format_alerts(alerts)
-    await message.answer(formatted_alerts, parse_mode="HTML")
+    await message.answer(formatted_alerts)
     logger.info(f"Пользователь {user_id} запросил список алертов.")
 
 @router.message(Command("remove_alert"))
