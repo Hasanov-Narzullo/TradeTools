@@ -1,6 +1,4 @@
 import random
-
-import aiosqlite
 import yfinance as yf
 import ccxt
 import asyncio
@@ -14,7 +12,7 @@ from datetime import datetime, timedelta
 from yfinance import Ticker
 from loguru import logger
 from aiocache import cached
-
+from economic_calendar import Investing
 from database import add_event
 
 _stock_price_cache: dict = {}
@@ -292,73 +290,11 @@ EVENT_TYPES = {
 
 @cached(ttl=3600)
 async def fetch_economic_calendar() -> list:
-    """Парсинг экономического календаря с Trading Economics."""
-    url = "https://tradingeconomics.com/calendar"
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-    }
-    events = []
+    """Парсинг экономического календаря с Investing.com."""
+    investing = Investing()
+    return await investing.news()
 
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url, headers=headers) as response:
-                if response.status != 200:
-                    logger.error(f"Ошибка при запросе к Trading Economics: {response.status}")
-                    return events
-
-                soup = BeautifulSoup(await response.text(), "html.parser")
-                table = soup.find("table", {"id": "calendar"})
-                if not table:
-                    logger.error("Таблица событий не найдена на Trading Economics")
-                    return events
-
-                rows = table.find("tbody").find_all("tr")
-                if not rows:
-                    logger.warning("События не найдены на Trading Economics")
-                    return events
-
-                for row in rows:
-                    try:
-                        cells = row.find_all("td")
-                        if len(cells) < 4:
-                            logger.debug("Недостаточно данных в строке, пропускаем")
-                            continue
-
-                        # Парсинг времени и даты
-                        event_time = cells[0].text.strip()
-                        event_date = datetime.now().strftime("%Y-%m-%d")  # Улучшить парсинг даты
-                        try:
-                            # Попытка парсинга даты из заголовка таблицы (если доступно)
-                            date_header = row.find_previous("tr", class_="calendar-date")
-                            if date_header:
-                                date_text = date_header.text.strip()
-                                event_date = datetime.strptime(date_text, "%Y-%m-%d").strftime("%Y-%m-%d")
-                        except Exception as e:
-                            logger.debug(f"Ошибка при парсинге даты: {e}, используется текущая дата")
-
-                        event_title = cells[2].text.strip()
-                        event_impact = cells[3].text.strip() or "Low Impact"
-
-                        events.append({
-                            "event_date": f"{event_date} {event_time}",
-                            "title": event_title,
-                            "description": f"Влияние: {event_impact}",
-                            "source": "Trading Economics",
-                            "type": "macro",
-                            "symbol": None
-                        })
-                        logger.debug(f"Добавлено событие: {event_title}")
-                    except Exception as e:
-                        logger.error(f"Ошибка при парсинге события: {e}")
-                        continue
-    except Exception as e:
-        logger.error(f"Ошибка при парсинге Trading Economics: {e}")
-
-    logger.info(f"Получено {len(events)} общеэкономических событий с Trading Economics")
-    return events
-
-
-@cached(ttl=3600)  # Кэшируем на 1 час
+@cached(ttl=3600)
 async def fetch_dividends_and_earnings(symbol: str) -> list:
     """Получение дивидендов и отчетностей для актива через yfinance."""
     events = []
@@ -400,7 +336,7 @@ async def fetch_dividends_and_earnings(symbol: str) -> list:
     logger.info(f"Получено {len(events)} событий для актива {symbol}")
     return events
 
-
+@cached(ttl=3600)
 async def fetch_test_events() -> list:
     """Добавление тестовых событий для проверки системы."""
     events = []

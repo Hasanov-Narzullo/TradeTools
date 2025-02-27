@@ -1337,3 +1337,65 @@
 2025-02-27 14:01:06.649 | INFO     | bot:on_startup:28 - Бот запущен.
 2025-02-27 14:01:10.228 | INFO     | handlers:handle_calendar_filter:1015 - Получено 0 событий для фильтра all
 2025-02-27 14:01:10.493 | INFO     | handlers:handle_calendar_filter:1021 - Пользователь 413467341 запросил события (пусто, фильтр: all).
+2025-02-27 14:01:31.696 | INFO     | __main__:<module>:49 - Запуск бота...
+2025-02-27 14:01:31.697 | INFO     | bot:setup_bot:20 - Инициализация бота...
+2025-02-27 14:01:31.697 | INFO     | bot:setup_bot:23 - Хэндлеры зарегистрированы.
+2025-02-27 14:01:31.698 | INFO     | scheduler:setup_scheduler:115 - Планировщик настроен.
+2025-02-27 14:01:31.700 | INFO     | database:init_db:183 - База данных инициализирована.
+2025-02-27 14:01:31.700 | INFO     | bot:on_startup:28 - Бот запущен.
+2025-02-27 14:01:32.259 | INFO     | handlers:handle_main_menu:894 - Пользователь 413467341 вернулся в главное меню.
+2025-02-27 14:01:34.186 | INFO     | handlers:handle_add_to_portfolio:647 - Пользователь 413467341 начал добавление актива в портфель.
+2025-02-27 14:01:39.647 | ERROR    | api:get_stock_price_finnhub:72 - Ошибка при получении цены для NVDA через Finnhub: 'Settings' object has no attribute 'FINNHUB_API_KEY'
+2025-02-27 14:01:39.648 | WARNING  | api:get_stock_price:113 - Цена для NVDA не найдена через Finnhub, переходим к следующему API
+2025-02-27 14:01:39.648 | ERROR    | api:get_stock_price_alpha_vantage:53 - Ошибка при получении цены для NVDA через Alpha Vantage: 'Settings' object has no attribute 'ALPHA_VANTAGE_API_KEY'
+2025-02-27 14:01:39.648 | WARNING  | api:get_stock_price:113 - Цена для NVDA не найдена через Alpha Vantage, переходим к следующему API
+2025-02-27 14:01:40.326 | INFO     | api:get_stock_price_yfinance:83 - Цена для NVDA получена через yfinance: 131.27999877929688
+2025-02-27 14:01:40.327 | INFO     | api:get_stock_price:111 - Цена для NVDA получена через yfinance: 131.27999877929688
+2025-02-27 14:01:40.529 | INFO     | handlers:add_symbol:254 - Пользователь 413467341 ввел символ NVDA для добавления в портфель.
+2025-02-27 14:01:42.814 | INFO     | handlers:add_amount:270 - Пользователь 413467341 ввел количество актива: 5
+2025-02-27 14:01:45.990 | ERROR    | handlers:add_price:296 - Ошибка при добавлении актива для пользователя 413467341: no such table: portfolios
+2025-02-27 14:01:51.849 | INFO     | handlers:handle_add_to_portfolio:647 - Пользователь 413467341 начал добавление актива в портфель.
+2025-02-27 14:01:56.378 | INFO     | api:get_stock_price:97 - Использована кэшированная цена для акции NVDA: 131.27999877929688
+2025-02-27 14:01:56.457 | INFO     | handlers:add_symbol:254 - Пользователь 413467341 ввел символ NVDA для добавления в портфель.
+2025-02-27 14:01:58.227 | INFO     | handlers:add_amount:270 - Пользователь 413467341 ввел количество актива: 5
+2025-02-27 14:02:01.348 | ERROR    | handlers:add_price:296 - Ошибка при добавлении актива для пользователя 413467341: no such table: portfolios
+2025-02-27 14:05:18.585 | INFO     | bot:on_shutdown:32 - Бот остановлен.
+2025-02-27 14:05:24.360 | INFO     | __main__:<module>:49 - Запуск бота...
+2025-02-27 14:05:24.361 | INFO     | bot:setup_bot:20 - Инициализация бота...
+2025-02-27 14:05:24.361 | INFO     | bot:setup_bot:23 - Хэндлеры зарегистрированы.
+2025-02-27 14:05:24.362 | INFO     | scheduler:setup_scheduler:115 - Планировщик настроен.
+2025-02-27 14:05:24.368 | INFO     | database:init_db:168 - Таблица portfolios создана или уже существует.
+2025-02-27 14:05:24.369 | INFO     | database:init_db:182 - Таблица alerts создана или уже существует.
+2025-02-27 14:05:24.370 | INFO     | database:init_db:197 - Таблица events создана или уже существует.
+2025-02-27 14:05:24.370 | INFO     | database:init_db:200 - База данных успешно инициализирована.
+2025-02-27 14:05:24.370 | INFO     | bot:on_startup:28 - Бот запущен.
+2025-02-27 14:05:28.429 | INFO     | handlers:handle_add_to_portfolio:651 - Пользователь 413467341 начал добавление актива в портфель.
+2025-02-27 14:05:32.351 | ERROR    | api:get_stock_price_finnhub:72 - Ошибка при получении цены для NVDA через Finnhub: 'Settings' object has no attribute 'FINNHUB_API_KEY'
+2025-02-27 14:05:32.352 | WARNING  | api:get_stock_price:113 - Цена для NVDA не найдена через Finnhub, переходим к следующему API
+2025-02-27 14:05:33.034 | INFO     | api:get_stock_price_yfinance:83 - Цена для NVDA получена через yfinance: 131.27999877929688
+2025-02-27 14:05:33.035 | INFO     | api:get_stock_price:111 - Цена для NVDA получена через yfinance: 131.27999877929688
+2025-02-27 14:05:33.132 | INFO     | handlers:add_symbol:254 - Пользователь 413467341 ввел символ NVDA для добавления в портфель.
+2025-02-27 14:05:34.009 | INFO     | handlers:add_amount:270 - Пользователь 413467341 ввел количество актива: 5
+2025-02-27 14:05:35.472 | INFO     | database:add_to_portfolio:50 - Актив NVDA добавлен в портфель пользователя 413467341.
+2025-02-27 14:05:35.679 | INFO     | handlers:add_price:291 - Пользователь 413467341 добавил актив в портфель: NVDA (stock)
+2025-02-27 14:05:38.365 | INFO     | api:get_stock_price:97 - Использована кэшированная цена для акции NVDA: 131.27999877929688
+2025-02-27 14:05:38.626 | INFO     | handlers:handle_portfolio:643 - Пользователь 413467341 запросил портфель (страница 1).
+2025-02-27 14:05:40.607 | INFO     | handlers:handle_quotes_menu:594 - Пользователь 413467341 открыл меню котировок.
+2025-02-27 14:05:43.428 | INFO     | api:get_stock_price:97 - Использована кэшированная цена для акции NVDA: 131.27999877929688
+2025-02-27 14:05:43.706 | INFO     | handlers:handle_portfolio_prices:932 - Пользователь 413467341 запросил цены портфеля.
+2025-02-27 14:05:48.298 | INFO     | handlers:handle_add_to_portfolio:651 - Пользователь 413467341 начал добавление актива в портфель.
+2025-02-27 14:05:58.451 | INFO     | api:get_crypto_price:134 - Цена криптовалюты BTC/USDT: 86886.13
+2025-02-27 14:05:58.911 | INFO     | handlers:add_symbol:254 - Пользователь 413467341 ввел символ BTC/USDT для добавления в портфель.
+2025-02-27 14:06:00.725 | INFO     | handlers:add_amount:270 - Пользователь 413467341 ввел количество актива: 1
+2025-02-27 14:06:05.465 | INFO     | database:add_to_portfolio:50 - Актив BTC/USDT добавлен в портфель пользователя 413467341.
+2025-02-27 14:06:05.594 | INFO     | handlers:add_price:291 - Пользователь 413467341 добавил актив в портфель: BTC/USDT (crypto)
+2025-02-27 14:06:11.401 | WARNING  | api:get_market_data:260 - Недостаточно данных для DAX (^GDA)
+2025-02-27 14:06:12.523 | WARNING  | api:get_market_data:260 - Недостаточно данных для RTS (^RTS)
+2025-02-27 14:06:16.771 | INFO     | handlers:handle_market_overview:698 - Пользователь 413467341 запросил обзор рынка.
+2025-02-27 14:06:26.287 | INFO     | handlers:handle_calendar_menu:666 - Пользователь 413467341 открыл меню календаря.
+2025-02-27 14:06:27.653 | INFO     | handlers:handle_calendar_filter:1019 - Получено 0 событий для фильтра all
+2025-02-27 14:06:27.742 | INFO     | handlers:handle_calendar_filter:1025 - Пользователь 413467341 запросил события (пусто, фильтр: all).
+2025-02-27 14:10:24.369 | INFO     | scheduler:check_alerts:15 - Проверка алертов...
+2025-02-27 14:15:24.372 | INFO     | scheduler:check_alerts:15 - Проверка алертов...
+2025-02-27 14:15:24.373 | INFO     | scheduler:update_quotes:39 - Обновление котировок...
+2025-02-27 14:20:24.375 | INFO     | scheduler:check_alerts:15 - Проверка алертов...

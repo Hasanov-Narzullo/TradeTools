@@ -51,7 +51,7 @@ async def update_calendar():
 
     # Получаем общеэкономические события
     economic_events = await fetch_economic_calendar()
-    logger.info(f"Получено {len(economic_events)} общеэкономических событий с Trading Economics")
+    logger.info(f"Получено {len(economic_events)} общеэкономических событий с Investing.com")
     for event in economic_events:
         try:
             await add_event(
