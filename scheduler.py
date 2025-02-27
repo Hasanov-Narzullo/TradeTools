@@ -41,7 +41,7 @@ async def update_quotes():
 
 
 async def update_calendar():
-    """Обновление календаря событий."""
+    """Обновление календаря событий с использованием EODHD и других источников."""
     logger.info("Начало обновления календаря событий...")
 
     try:
@@ -51,10 +51,10 @@ async def update_calendar():
             symbols = [row[0] for row in await cursor.fetchall()]
             logger.info(f"Найдено {len(symbols)} уникальных символов в портфеле: {symbols}")
 
-        # Получаем события через Alpha Vantage (экономический календарь, включая отчетности и макро)
-        alpha_events = await fetch_economic_calendar()
-        logger.info(f"Получено {len(alpha_events)} событий с Alpha Vantage")
-        for event in alpha_events:
+        # Получаем события через fetch_economic_calendar (включает EODHD и Alpha Vantage)
+        calendar_events = await fetch_economic_calendar()
+        logger.info(f"Получено {len(calendar_events)} событий экономического календаря")
+        for event in calendar_events:
             try:
                 await add_event(
                     event_date=event["event_date"],
@@ -64,16 +64,16 @@ async def update_calendar():
                     event_type=event["type"],
                     symbol=event["symbol"]
                 )
-                logger.debug(f"Добавлено событие с Alpha Vantage: {event['title']}")
+                logger.debug(f"Добавлено событие календаря: {event['title']}")
             except Exception as e:
-                logger.error(f"Ошибка при добавлении события с Alpha Vantage: {e}")
+                logger.error(f"Ошибка при добавлении события календаря: {e}")
                 continue
 
-        # Получаем дивиденды для активов из портфеля через yfinance
+        # Получаем дивиденды и отчетности для активов из портфеля (включает EODHD)
         for symbol in symbols:
-            yfinance_events = await fetch_dividends_and_earnings(symbol)
-            logger.info(f"Получено {len(yfinance_events)} событий для актива {symbol} через yfinance")
-            for event in yfinance_events:
+            asset_events = await fetch_dividends_and_earnings(symbol)
+            logger.info(f"Получено {len(asset_events)} событий для актива {symbol}")
+            for event in asset_events:
                 try:
                     await add_event(
                         event_date=event["event_date"],
@@ -119,5 +119,5 @@ def setup_scheduler(scheduler: AsyncIOScheduler):
     """Настройка планировщика задач."""
     scheduler.add_job(check_alerts, "interval", minutes=5)  # Проверка алертов каждые 5 минут
     scheduler.add_job(update_quotes, "interval", minutes=10)  # Обновление котировок каждые 10 минут
-    scheduler.add_job(update_calendar, "interval", hours=5)  # Обновление календаря каждые 5 часов
+    scheduler.add_job(update_calendar, "interval", hours=2.5)  # Обновление календаря каждые 5 часов
     logger.info("Планировщик настроен.")
