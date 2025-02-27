@@ -817,3 +817,36 @@
 2025-02-27 11:16:15.402 | INFO     | api:get_crypto_price:120 - Использована кэшированная цена для криптовалюты BTC/USDT: 86253.98
 2025-02-27 11:16:15.495 | INFO     | handlers:select_alert_symbol:362 - Пользователь 413467341 ввел символ BTC/USDT для алерта.
 2025-02-27 11:16:19.979 | INFO     | handlers:select_alert_price:378 - Пользователь 413467341 ввел целевую цену: 86000
+2025-02-27 11:17:10.299 | INFO     | __main__:<module>:49 - Запуск бота...
+2025-02-27 11:17:10.299 | INFO     | bot:setup_bot:20 - Инициализация бота...
+2025-02-27 11:17:10.300 | INFO     | bot:setup_bot:23 - Хэндлеры зарегистрированы.
+2025-02-27 11:17:10.300 | INFO     | scheduler:setup_scheduler:58 - Планировщик настроен.
+2025-02-27 11:17:10.303 | INFO     | database:init_db:159 - База данных инициализирована.
+2025-02-27 11:17:10.304 | INFO     | bot:on_startup:28 - Бот запущен.
+2025-02-27 11:17:14.112 | INFO     | handlers:handle_set_alert:643 - Пользователь 413467341 начал установку алерта.
+2025-02-27 11:17:21.824 | INFO     | api:get_crypto_price:128 - Цена криптовалюты BTC/USDT: 86166.94
+2025-02-27 11:17:22.234 | INFO     | handlers:select_alert_symbol:362 - Пользователь 413467341 ввел символ BTC/USDT для алерта.
+2025-02-27 11:17:26.899 | INFO     | handlers:select_alert_price:378 - Пользователь 413467341 ввел целевую цену: 86000
+2025-02-27 11:17:28.119 | INFO     | handlers:select_alert_condition:396 - Пользователь 413467341 выбрал условие алерта: below
+2025-02-27 11:22:10.309 | INFO     | scheduler:check_alerts:14 - Проверка алертов...
+2025-02-27 11:22:17.846 | INFO     | api:get_crypto_price:128 - Цена криптовалюты BTC/USDT: 86264.15
+2025-02-27 11:25:02.729 | INFO     | __main__:<module>:49 - Запуск бота...
+2025-02-27 11:25:02.730 | INFO     | bot:setup_bot:20 - Инициализация бота...
+2025-02-27 11:25:02.730 | INFO     | bot:setup_bot:23 - Хэндлеры зарегистрированы.
+2025-02-27 11:25:02.731 | INFO     | scheduler:setup_scheduler:58 - Планировщик настроен.
+2025-02-27 11:25:02.733 | INFO     | database:init_db:159 - База данных инициализирована.
+2025-02-27 11:25:02.733 | INFO     | bot:on_startup:28 - Бот запущен.
+2025-02-27 11:25:08.960 | INFO     | handlers:handle_set_alert:646 - Пользователь 413467341 начал установку алерта.
+2025-02-27 11:25:17.280 | INFO     | api:get_crypto_price:128 - Цена криптовалюты BTC/USDT: 86096.36
+2025-02-27 11:25:17.695 | INFO     | handlers:select_alert_symbol:362 - Пользователь 413467341 ввел символ BTC/USDT для алерта.
+2025-02-27 11:25:22.305 | INFO     | handlers:select_alert_price:378 - Пользователь 413467341 ввел целевую цену: 86000
+2025-02-27 11:25:26.240 | INFO     | handlers:select_alert_condition:401 - Пользователь 413467341 выбрал условие алерта: below
+2025-02-27 11:25:27.692 | INFO     | handlers:select_alert_condition:401 - Пользователь 413467341 выбрал условие алерта: confirm_alert
+2025-02-27 11:25:30.775 | INFO     | handlers:select_alert_condition:401 - Пользователь 413467341 выбрал условие алерта: confirm_alert
+2025-02-27 11:25:31.953 | INFO     | handlers:select_alert_condition:401 - Пользователь 413467341 выбрал условие алерта: confirm_alert
+2025-02-27 11:25:32.678 | INFO     | handlers:select_alert_condition:401 - Пользователь 413467341 выбрал условие алерта: confirm_alert
+2025-02-27 11:25:33.427 | INFO     | handlers:select_alert_condition:401 - Пользователь 413467341 выбрал условие алерта: confirm_alert
+2025-02-27 11:25:34.169 | INFO     | handlers:select_alert_condition:401 - Пользователь 413467341 выбрал условие алерта: confirm_alert
+2025-02-27 11:25:42.604 | INFO     | handlers:select_alert_condition:401 - Пользователь 413467341 выбрал условие алерта: cancel
+2025-02-27 11:25:44.104 | INFO     | handlers:select_alert_condition:401 - Пользователь 413467341 выбрал условие алерта: confirm_alert
+2025-02-27 11:26:00.373 | INFO     | handlers:select_alert_condition:401 - Пользователь 413467341 выбрал условие алерта: market

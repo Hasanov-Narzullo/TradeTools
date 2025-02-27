@@ -377,9 +377,9 @@ async def select_alert_price(message: Message, state: FSMContext):
         await message.answer("Пожалуйста, введите число.", reply_markup=main_menu())
     logger.info(f"Пользователь {user_id} ввел целевую цену: {message.text}")
 
-@router.callback_query(AlertState.selecting_condition)
+@router.callback_query(AlertState.selecting_condition, F.data.in_({"above", "below"}))
 async def select_alert_condition(callback: CallbackQuery, state: FSMContext):
-    """Обработчик выбора условия алерта."""
+    """Обработчик выбора условия алерта (above или below)."""
     condition = callback.data
     data = await state.get_data()
     symbol = data["symbol"]
@@ -756,10 +756,21 @@ async def confirm_alert(callback: CallbackQuery, state: FSMContext):
     """Обработчик подтверждения установки алерта."""
     user_id = callback.from_user.id
     data = await state.get_data()
-    symbol = data["symbol"]
-    target_price = data["target_price"]
-    condition = data["condition"]
-    asset_type = data["asset_type"]
+    symbol = data.get("symbol")
+    target_price = data.get("target_price")
+    condition = data.get("condition")
+    asset_type = data.get("asset_type")
+
+    if not all([symbol, target_price, condition, asset_type]):
+        await callback.message.answer(
+            "Ошибка: не удалось установить алерт. Пожалуйста, начните заново.",
+            reply_markup=main_menu()
+        )
+        await state.clear()
+        await callback.answer()
+        logger.error(f"Пользователь {user_id} попытался подтвердить алерт с неполными данными: {data}")
+        return
+
     await add_alert(user_id, asset_type, symbol, target_price, condition)
     await callback.message.answer(f"Алерт установлен для {symbol}!", reply_markup=main_menu())
     await state.clear()
@@ -816,3 +827,27 @@ async def confirm_remove_asset(callback: CallbackQuery, state: FSMContext):
     await state.clear()
     await callback.answer()
     logger.info(f"Пользователь {user_id} удалил актив {symbol} из портфеля.")
+
+@router.callback_query(F.data.in_({"quotes", "portfolio", "add_to_portfolio", "set_alert", "calendar", "help", "market"}))
+async def handle_menu_command(callback: CallbackQuery, state: FSMContext):
+    """Обработчик команд из главного меню, сбрасывающий текущее состояние."""
+    current_state = await state.get_state()
+    if current_state:
+        await state.clear()
+        logger.info(f"Пользователь {callback.from_user.id} сбросил состояние {current_state} для выполнения команды {callback.data}")
+
+    command = callback.data
+    if command == "quotes":
+        await handle_quotes(callback, state)
+    elif command == "portfolio":
+        await handle_portfolio(callback)
+    elif command == "add_to_portfolio":
+        await handle_add_to_portfolio(callback, state)
+    elif command == "set_alert":
+        await handle_set_alert(callback, state)
+    elif command == "calendar":
+        await handle_calendar(callback)
+    elif command == "help":
+        await handle_help(callback)
+    elif command == "market":
+        await handle_market(callback)
