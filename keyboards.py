@@ -114,7 +114,7 @@ def alerts_menu_keyboard(current_page: int = 1, total_pages: int = 1) -> InlineK
 def pagination_keyboard(current_page: int, total_pages: int, prefix: str) -> InlineKeyboardMarkup:
     """
     Клавиатура для навигации по страницам.
-    prefix: 'portfolio' или 'alerts' для определения типа данных.
+    prefix: 'portfolio', 'alerts' или 'calendar' для определения типа данных.
     """
     buttons = []
     if current_page > 1:
@@ -124,6 +124,26 @@ def pagination_keyboard(current_page: int, total_pages: int, prefix: str) -> Inl
 
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         buttons,
-        [InlineKeyboardButton(text="🔙 Назад", callback_data="main_menu" if prefix == "portfolio" else "alerts_menu")]
+        [InlineKeyboardButton(text="🔙 Назад", callback_data="main_menu" if prefix in ["portfolio", "calendar"] else "alerts_menu")]
     ])
     return keyboard
+
+def calendar_menu_keyboard() -> InlineKeyboardMarkup:
+    """Клавиатура для меню календаря событий."""
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text="📅 Все события", callback_data="calendar_all"),
+            InlineKeyboardButton(text="💼 События портфеля", callback_data="calendar_portfolio")
+        ],
+        [
+            InlineKeyboardButton(text="🌍 Общеэкономические", callback_data="calendar_macro"),
+            InlineKeyboardButton(text="💸 Дивиденды", callback_data="calendar_dividends")
+        ],
+        [
+            InlineKeyboardButton(text="📈 Отчетности", callback_data="calendar_earnings"),
+            InlineKeyboardButton(text="🎤 Пресс-конференции", callback_data="calendar_press")
+        ],
+        [
+            InlineKeyboardButton(text="🔙 Назад", callback_data="main_menu")
+        ]
+    ])

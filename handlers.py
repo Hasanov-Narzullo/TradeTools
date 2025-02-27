@@ -5,7 +5,7 @@ from aiogram.fsm.context import FSMContext
 from loguru import logger
 from keyboards import main_menu, asset_type_keyboard, alert_condition_keyboard, alert_actions_keyboard, \
     portfolio_actions_keyboard, confirm_alert_keyboard, confirm_remove_asset_keyboard, alerts_menu_keyboard, \
-    quotes_menu_keyboard
+    quotes_menu_keyboard, calendar_menu_keyboard, pagination_keyboard
 from states import PortfolioState, AlertState
 from database import add_to_portfolio, get_portfolio, remove_from_portfolio, add_alert, get_alerts, remove_alert, \
     get_events
@@ -655,13 +655,11 @@ async def handle_set_alert(callback: CallbackQuery, state: FSMContext):
     logger.info(f"Пользователь {callback.from_user.id} начал установку алерта.")
 
 @router.callback_query(F.data == "calendar")
-async def handle_calendar(callback: CallbackQuery):
-    """Обработчик кнопки 'Календарь'."""
-    events = await get_events()
-    formatted_events = format_events(events)
-    await callback.message.answer(formatted_events, reply_markup=main_menu())
+async def handle_calendar_menu(callback: CallbackQuery, state: FSMContext):
+    """Обработчик кнопки 'Календарь' в главном меню."""
+    await callback.message.answer("Выберите тип событий:", reply_markup=calendar_menu_keyboard())
     await callback.answer()
-    logger.info(f"Пользователь {callback.from_user.id} запросил календарь.")
+    logger.info(f"Пользователь {callback.from_user.id} открыл меню календаря.")
 
 @router.callback_query(F.data == "help")
 async def handle_help(callback: CallbackQuery):
@@ -829,7 +827,7 @@ async def handle_menu_command(callback: CallbackQuery, state: FSMContext):
     elif command == "set_alert":
         await handle_set_alert(callback, state)
     elif command == "calendar":
-        await handle_calendar(callback)
+        await handle_calendar_menu(callback)
     elif command == "help":
         await handle_help(callback)
     elif command == "market":
@@ -992,3 +990,80 @@ async def handle_alerts_page(callback: CallbackQuery, state: FSMContext):
     )
     await callback.answer()
     logger.info(f"Пользователь {callback.from_user.id} перешел на страницу алертов {page}.")
+
+@router.callback_query(F.data.startswith("calendar_"))
+async def handle_calendar_filter(callback: CallbackQuery, state: FSMContext):
+    """Обработчик фильтрации событий."""
+    filter_type = callback.data.replace("calendar_", "")
+    user_id = callback.from_user.id
+    portfolio_only = filter_type == "portfolio"
+    event_type = None
+
+    if filter_type == "macro":
+        event_type = "macro"
+    elif filter_type == "dividends":
+        event_type = "dividends"
+    elif filter_type == "earnings":
+        event_type = "earnings"
+    elif filter_type == "press":
+        event_type = "press"
+    elif filter_type == "all":
+        event_type = None
+        portfolio_only = False
+
+    events = await get_events(user_id=user_id, event_type=event_type, portfolio_only=portfolio_only)
+    if not events:
+        await callback.message.answer(
+            "Событий не найдено.",
+            reply_markup=calendar_menu_keyboard()
+        )
+        logger.info(f"Пользователь {user_id} запросил события (пусто, фильтр: {filter_type}).")
+        return
+
+    formatted_events, total_pages = format_events(events, page=1)
+    await callback.message.answer(
+        formatted_events,
+        reply_markup=pagination_keyboard(current_page=1, total_pages=total_pages, prefix="calendar")
+    )
+    await state.update_data(calendar_filter=filter_type)
+    await callback.answer()
+    logger.info(f"Пользователь {user_id} запросил события (фильтр: {filter_type}, страница 1).")
+
+@router.callback_query(F.data.startswith("calendar_page_"))
+async def handle_calendar_page(callback: CallbackQuery, state: FSMContext):
+    """Обработчик навигации по страницам календаря."""
+    page = int(callback.data.replace("calendar_page_", ""))
+    user_id = callback.from_user.id
+    data = await state.get_data()
+    filter_type = data.get("calendar_filter", "all")
+    portfolio_only = filter_type == "portfolio"
+    event_type = None
+
+    if filter_type == "macro":
+        event_type = "macro"
+    elif filter_type == "dividends":
+        event_type = "dividends"
+    elif filter_type == "earnings":
+        event_type = "earnings"
+    elif filter_type == "press":
+        event_type = "press"
+    elif filter_type == "all":
+        event_type = None
+        portfolio_only = False
+
+    events = await get_events(user_id=user_id, event_type=event_type, portfolio_only=portfolio_only)
+    if not events:
+        await callback.message.answer(
+            "Событий не найдено.",
+            reply_markup=calendar_menu_keyboard()
+        )
+        logger.info(f"Пользователь {user_id} запросил события (пусто, фильтр: {filter_type}).")
+        return
+
+    formatted_events, total_pages = format_events(events, page=page)
+    await callback.message.edit_text(
+        formatted_events,
+        reply_markup=pagination_keyboard(current_page=page, total_pages=total_pages, prefix="calendar")
+    )
+    await callback.answer()
+    logger.info(f"Пользователь {user_id} перешел на страницу календаря {page} (фильтр: {filter_type}).")

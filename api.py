@@ -1,15 +1,21 @@
 import random
+
+import aiosqlite
 import yfinance as yf
 import ccxt
-import aiohttp
 import asyncio
 from asyncio import sleep
-from loguru import logger
 from typing import Optional
 from config import settings
 import ccxt.async_support as ccxt
+import aiohttp
+from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
+from yfinance import Ticker
+from loguru import logger
 from aiocache import cached
+
+from database import add_event
 
 _stock_price_cache: dict = {}
 _crypto_price_cache: dict = {}
@@ -276,3 +282,128 @@ async def get_market_data() -> dict:
             await exchange.close()
 
     return market_data
+
+EVENT_TYPES = {
+    "macro": "Общеэкономические",
+    "dividends": "Дивиденды",
+    "earnings": "Отчетности",
+    "press": "Пресс-конференции"
+}
+
+@cached(ttl=3600)  # Кэшируем на 1 час
+async def fetch_economic_calendar() -> list:
+    """Парсинг экономического календаря с Investing.com."""
+    url = "https://www.investing.com/economic-calendar/"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+    }
+    events = []
+
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, headers=headers) as response:
+                if response.status != 200:
+                    logger.error(f"Ошибка при запросе к Investing.com: {response.status}")
+                    return events
+
+                soup = BeautifulSoup(await response.text(), "html.parser")
+                table = soup.find("table", {"id": "economicCalendarData"})
+                if not table:
+                    logger.error("Таблица событий не найдена на Investing.com")
+                    return events
+
+                rows = table.find("tbody").find_all("tr", class_="js-event-item")
+                for row in rows:
+                    try:
+                        event_time = row.find("td", class_="time").text.strip()
+                        event_date = datetime.now().strftime("%Y-%m-%d")  # Можно улучшить парсинг даты
+                        event_title = row.find("td", class_="event").text.strip()
+                        event_impact = row.find("td", class_="sentiment").get("title", "Low Impact")
+
+                        events.append({
+                            "event_date": f"{event_date} {event_time}",
+                            "title": event_title,
+                            "description": f"Влияние: {event_impact}",
+                            "source": "Investing.com",
+                            "type": "macro"  # Общеэкономические события
+                        })
+                    except Exception as e:
+                        logger.error(f"Ошибка при парсинге события: {e}")
+                        continue
+    except Exception as e:
+        logger.error(f"Ошибка при парсинге Investing.com: {e}")
+
+    return events
+
+@cached(ttl=3600)  # Кэшируем на 1 час
+async def fetch_dividends_and_earnings(symbol: str) -> list:
+    """Получение дивидендов и отчетностей для актива через yfinance."""
+    events = []
+    try:
+        ticker = Ticker(symbol)
+        dividends = ticker.dividends
+        earnings_dates = ticker.earnings_dates
+
+        # Дивиденды
+        for date, amount in dividends.items():
+            event_date = date.strftime("%Y-%m-%d %H:%M:%S")
+            events.append({
+                "event_date": event_date,
+                "title": f"Дивиденды для {symbol}",
+                "description": f"Сумма: ${amount:.2f}",
+                "source": "Yahoo Finance",
+                "type": "dividends",
+                "symbol": symbol
+            })
+
+        # Отчетности
+        if earnings_dates is not None:
+            for date, _ in earnings_dates.iterrows():
+                event_date = date.strftime("%Y-%m-%d %H:%M:%S")
+                events.append({
+                    "event_date": event_date,
+                    "title": f"Отчетность для {symbol}",
+                    "description": "Отчетность компании",
+                    "source": "Yahoo Finance",
+                    "type": "earnings",
+                    "symbol": symbol
+                })
+    except Exception as e:
+        logger.error(f"Ошибка при получении событий для {symbol}: {e}")
+
+    return events
+
+async def update_calendar():
+    """Обновление календаря событий."""
+    logger.info("Обновление календаря событий...")
+
+    # Получаем общеэкономические события
+    economic_events = await fetch_economic_calendar()
+    for event in economic_events:
+        await add_event(
+            event_date=event["event_date"],
+            title=event["title"],
+            description=event["description"],
+            source=event["source"],
+            event_type=event["type"],
+            symbol=None
+        )
+
+    # Получаем события для активов из портфеля
+    async with aiosqlite.connect(settings.db.DB_PATH) as db:
+        cursor = await db.execute("SELECT DISTINCT symbol FROM portfolios")
+        symbols = [row[0] for row in await cursor.fetchall()]
+
+    for symbol in symbols:
+        asset_events = await fetch_dividends_and_earnings(symbol)
+        for event in asset_events:
+            await add_event(
+                event_date=event["event_date"],
+                title=event["title"],
+                description=event["description"],
+                source=event["source"],
+                event_type=event["type"],
+                symbol=event["symbol"]
+            )
+
+    logger.info("Календарь событий обновлен.")

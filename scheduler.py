@@ -3,7 +3,7 @@ from loguru import logger
 
 from config import settings
 from database import get_alerts, remove_alert, add_event
-from api import get_stock_price, get_crypto_price
+from api import get_stock_price, get_crypto_price, fetch_economic_calendar, fetch_dividends_and_earnings
 from bot import bot
 import aiosqlite
 from datetime import datetime, timedelta
@@ -42,12 +42,35 @@ async def update_calendar():
     """Обновление календаря событий."""
     logger.info("Обновление календаря событий...")
 
-    await add_event(
-        event_date=(datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d"),
-        title="Тестовое событие",
-        description="Описание тестового события",
-        source="Тестовый источник"
-    )
+    # Получаем общеэкономические события
+    economic_events = await fetch_economic_calendar()
+    for event in economic_events:
+        await add_event(
+            event_date=event["event_date"],
+            title=event["title"],
+            description=event["description"],
+            source=event["source"],
+            event_type=event["type"],
+            symbol=None
+        )
+
+    # Получаем события для активов из портфеля
+    async with aiosqlite.connect(settings.db.DB_PATH) as db:
+        cursor = await db.execute("SELECT DISTINCT symbol FROM portfolios")
+        symbols = [row[0] for row in await cursor.fetchall()]
+
+    for symbol in symbols:
+        asset_events = await fetch_dividends_and_earnings(symbol)
+        for event in asset_events:
+            await add_event(
+                event_date=event["event_date"],
+                title=event["title"],
+                description=event["description"],
+                source=event["source"],
+                event_type=event["type"],
+                symbol=event["symbol"]
+            )
+
     logger.info("Календарь событий обновлен.")
 
 def setup_scheduler(scheduler: AsyncIOScheduler):

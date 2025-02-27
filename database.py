@@ -81,19 +81,48 @@ async def remove_alert(alert_id: int):
     logger.info(f"Алерт {alert_id} удален.")
 
 # Функции для работы с событиями
-async def add_event(event_date: str, title: str, description: str, source: str):
+async def add_event(event_date: str, title: str, description: str, source: str, event_type: str, symbol: str = None):
+    """Добавление события в базу данных."""
     async with aiosqlite.connect(settings.db.DB_PATH) as db:
-        await db.execute("""
-            INSERT INTO events (event_date, title, description, source)
-            VALUES (?, ?, ?, ?)
-        """, (event_date, title, description, source))
-        await db.commit()
-    logger.info(f"Событие '{title}' добавлено.")
+        try:
+            await db.execute("""
+                INSERT OR IGNORE INTO events (event_date, title, description, source, type, symbol)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (event_date, title, description, source, event_type, symbol))
+            await db.commit()
+            logger.info(f"Событие '{title}' добавлено (тип: {event_type}, символ: {symbol}).")
+        except Exception as e:
+            logger.error(f"Ошибка при добавлении события '{title}': {e}")
 
-async def get_events():
+async def get_events(user_id: int = None, event_type: str = None, portfolio_only: bool = False) -> list:
+    """Получение событий с фильтрацией по типу и активам из портфеля."""
+    query = "SELECT * FROM events WHERE 1=1"
+    params = []
+
+    if portfolio_only and user_id:
+        # Получаем символы из портфеля пользователя
+        async with aiosqlite.connect(settings.db.DB_PATH) as db:
+            cursor = await db.execute("SELECT DISTINCT symbol FROM portfolios WHERE user_id = ?", (user_id,))
+            portfolio_symbols = [row[0] for row in await cursor.fetchall()]
+        if portfolio_symbols:
+            query += " AND symbol IN (" + ",".join("?" * len(portfolio_symbols)) + ")"
+            params.extend(portfolio_symbols)
+        else:
+            return []  # Если портфель пуст, возвращаем пустой список
+
+    if event_type:
+        query += " AND type = ?"
+        params.append(event_type)
+
+    query += " ORDER BY event_date ASC"
+
     async with aiosqlite.connect(settings.db.DB_PATH) as db:
-        cursor = await db.execute("SELECT * FROM events")
-        return await cursor.fetchall()
+        cursor = await db.execute(query, params)
+        events = await cursor.fetchall()
+        return [
+            (event[0], event[1], event[2], event[3], event[4], event[5], event[6])
+            for event in events
+        ]
 
 # database.py
 async def get_portfolio(user_id: int):
@@ -125,34 +154,15 @@ async def init_db():
     try:
         async with aiosqlite.connect(settings.db.DB_PATH) as db:
             await db.execute("""
-                CREATE TABLE IF NOT EXISTS portfolios (
-                    user_id INTEGER,
-                    asset_type TEXT,
-                    symbol TEXT,
-                    amount REAL,
-                    purchase_price REAL,
-                    purchase_date TEXT,
-                    PRIMARY KEY (user_id, symbol)
-                )
-            """)
-            await db.execute("""
-                CREATE TABLE IF NOT EXISTS alerts (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    user_id INTEGER,
-                    asset_type TEXT,
-                    symbol TEXT,
-                    target_price REAL,
-                    condition TEXT,
-                    created_at TEXT
-                )
-            """)
-            await db.execute("""
                 CREATE TABLE IF NOT EXISTS events (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     event_date TEXT,
                     title TEXT,
                     description TEXT,
-                    source TEXT
+                    source TEXT,
+                    type TEXT,  -- Тип события (macro, dividends, earnings, press)
+                    symbol TEXT, -- Символ актива (NULL для общеэкономических событий)
+                    UNIQUE(event_date, title, symbol)  -- Уникальность событий
                 )
             """)
             await db.commit()

@@ -2,6 +2,9 @@ from datetime import datetime
 from html import escape
 from loguru import logger
 
+from api import EVENT_TYPES
+
+
 def format_portfolio(portfolio, page: int = 1, items_per_page: int = 4) -> tuple[str, int]:
     """
     Форматирует портфель для отображения на указанной странице.
@@ -100,22 +103,41 @@ def format_alerts(alerts: list, page: int = 1, items_per_page: int = 4) -> tuple
 
     return result, total_pages
 
-def format_events(events: list) -> str:
-    """Форматирование списка событий для вывода."""
+def format_events(events: list, page: int = 1, items_per_page: int = 4) -> tuple[str, int]:
+    """
+    Форматирует список событий для вывода на указанной странице.
+    Возвращает отформатированный текст и общее количество страниц.
+    """
     if not events:
-        return "Календарь событий пуст."
+        return "Календарь событий пуст.", 0
 
-    result = "📅 Календарь событий:\n\n"
-    for event in events:
-        event_id, event_date, title, description, source = event
+    # Вычисляем общее количество страниц
+    total_pages = (len(events) + items_per_page - 1) // items_per_page
+    if page < 1:
+        page = 1
+    if page > total_pages:
+        page = total_pages
+
+    # Определяем диапазон элементов для текущей страницы
+    start_idx = (page - 1) * items_per_page
+    end_idx = start_idx + items_per_page
+    page_items = events[start_idx:end_idx]
+
+    result = f"📅 Календарь событий (страница {page}/{total_pages}):\n\n"
+    for event in page_items:
+        event_id, event_date, title, description, source, event_type, symbol = event
+        event_type_display = EVENT_TYPES.get(event_type, "Неизвестный тип")
         result += (
+            f"Тип: {event_type_display}\n"
             f"Дата: {event_date}\n"
             f"Название: {title}\n"
             f"Описание: {description}\n"
             f"Источник: {source}\n"
+            f"Актив: {symbol if symbol else 'Общее'}\n"
             f"{'-' * 30}\n"
         )
-    return result
+
+    return result, total_pages
 
 def validate_symbol(symbol: str, asset_type: str) -> bool:
     """Проверка корректности символа актива."""
