@@ -40,16 +40,84 @@ async def update_quotes():
     logger.info("Обновление котировок...")
 
 
-def setup_scheduler(scheduler: AsyncIOScheduler):
-    """Настройка планировщика задач."""
-    scheduler.add_job(check_alerts, "interval", minutes=5)  # Проверка алертов каждые 5 минут
-    scheduler.add_job(update_quotes, "interval", minutes=10)  # Обновление котировок каждые 10 минут
-    scheduler.add_job(update_calendar, "interval", hours=5)  # Обновление календаря каждые 5 часов
-    logger.info("Планировщик настроен.")
+async def update_calendar():
+    """Обновление календаря событий."""
+    logger.info("Начало обновления календаря событий...")
+
+    try:
+        # Проверяем портфель
+        async with aiosqlite.connect(settings.db.DB_PATH) as db:
+            cursor = await db.execute("SELECT DISTINCT symbol FROM portfolios")
+            symbols = [row[0] for row in await cursor.fetchall()]
+            logger.info(f"Найдено {len(symbols)} уникальных символов в портфеле: {symbols}")
+
+        # Получаем события через Alpha Vantage (экономический календарь, включая отчетности и макро)
+        alpha_events = await fetch_economic_calendar()
+        logger.info(f"Получено {len(alpha_events)} событий с Alpha Vantage")
+        for event in alpha_events:
+            try:
+                await add_event(
+                    event_date=event["event_date"],
+                    title=event["title"],
+                    description=event["description"],
+                    source=event["source"],
+                    event_type=event["type"],
+                    symbol=event["symbol"]
+                )
+                logger.debug(f"Добавлено событие с Alpha Vantage: {event['title']}")
+            except Exception as e:
+                logger.error(f"Ошибка при добавлении события с Alpha Vantage: {e}")
+                continue
+
+        # Получаем дивиденды для активов из портфеля через yfinance
+        for symbol in symbols:
+            yfinance_events = await fetch_dividends_and_earnings(symbol)
+            logger.info(f"Получено {len(yfinance_events)} событий для актива {symbol} через yfinance")
+            for event in yfinance_events:
+                try:
+                    await add_event(
+                        event_date=event["event_date"],
+                        title=event["title"],
+                        description=event["description"],
+                        source=event["source"],
+                        event_type=event["type"],
+                        symbol=event["symbol"]
+                    )
+                    logger.debug(f"Добавлено событие для актива {symbol}: {event['title']}")
+                except Exception as e:
+                    logger.error(f"Ошибка при добавлении события для актива {symbol}: {e}")
+                    continue
+
+        # Добавляем тестовые события для проверки
+        test_events = await fetch_test_events()
+        logger.info(f"Получено {len(test_events)} тестовых событий")
+        for event in test_events:
+            try:
+                await add_event(
+                    event_date=event["event_date"],
+                    title=event["title"],
+                    description=event["description"],
+                    source=event["source"],
+                    event_type=event["type"],
+                    symbol=event["symbol"]
+                )
+                logger.debug(f"Добавлено тестовое событие: {event['title']}")
+            except Exception as e:
+                logger.error(f"Ошибка при добавлении тестового события: {e}")
+                continue
+
+        # Проверяем базу данных после обновления
+        async with aiosqlite.connect(settings.db.DB_PATH) as db:
+            cursor = await db.execute("SELECT COUNT(*) FROM events")
+            event_count = (await cursor.fetchone())[0]
+            logger.info(f"Календарь событий обновлен. В базе данных {event_count} событий.")
+
+    except Exception as e:
+        logger.error(f"Ошибка при обновлении календаря событий: {e}")
 
 def setup_scheduler(scheduler: AsyncIOScheduler):
     """Настройка планировщика задач."""
     scheduler.add_job(check_alerts, "interval", minutes=5)  # Проверка алертов каждые 5 минут
     scheduler.add_job(update_quotes, "interval", minutes=10)  # Обновление котировок каждые 10 минут
-    scheduler.add_job(update_calendar, "interval", hours=24)  # Обновление календаря раз в день
+    scheduler.add_job(update_calendar, "interval", hours=5)  # Обновление календаря каждые 5 часов
     logger.info("Планировщик настроен.")
