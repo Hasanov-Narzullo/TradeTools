@@ -1,10 +1,10 @@
 from aiogram import Router, F
 from aiogram.filters import Command
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.fsm.context import FSMContext
 from loguru import logger
 from keyboards import main_menu, asset_type_keyboard, alert_condition_keyboard, alert_actions_keyboard, \
-    portfolio_actions_keyboard
+    portfolio_actions_keyboard, confirm_alert_keyboard, confirm_remove_asset_keyboard
 from states import PortfolioState, AlertState
 from database import add_to_portfolio, get_portfolio, remove_from_portfolio, add_alert, get_alerts, remove_alert, \
     get_events
@@ -390,7 +390,12 @@ async def select_alert_condition(callback: CallbackQuery, state: FSMContext):
         f"Актив: {symbol}\n"
         f"Целевая цена: ${target_price:.2f}\n"
         f"Условие: {'выше' if condition == 'above' else 'ниже'}",
-        reply_markup=confirm_alert_keyboard(symbol, target_price, condition)
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [
+                InlineKeyboardButton(text="✅ Подтвердить", callback_data="confirm_alert"),
+                InlineKeyboardButton(text="🚫 Отмена", callback_data="cancel")
+            ]
+        ])
     )
     await callback.answer()
     logger.info(f"Пользователь {callback.from_user.id} выбрал условие алерта: {condition}")
@@ -617,12 +622,10 @@ async def handle_portfolio(callback: CallbackQuery):
             continue
 
     formatted_portfolio = format_portfolio(portfolio_with_prices)
-    for asset in portfolio_with_prices:
-        symbol = asset['symbol']
-        await callback.message.answer(
-            formatted_portfolio,
-            reply_markup=portfolio_actions_keyboard(symbol)
-        )
+    await callback.message.answer(
+        formatted_portfolio,
+        reply_markup=portfolio_actions_keyboard()
+    )
     await callback.answer()
     logger.info(f"Пользователь {callback.from_user.id} запросил портфель.")
 
@@ -707,15 +710,13 @@ async def handle_market(callback: CallbackQuery):
     await callback.answer()
     logger.info(f"Пользователь {callback.from_user.id} запросил текущие рыночные цены.")
 
-@router.callback_query(F.data.startswith("remove_asset_"))
-async def handle_remove_asset(callback: CallbackQuery, state: FSMContext):
-    """Обработчик удаления актива из портфеля."""
-    symbol = callback.data.replace("remove_asset_", "")
-    user_id = callback.from_user.id
-    await remove_from_portfolio(user_id, symbol)
-    await callback.message.answer(f"Актив {symbol} удален из портфеля.", reply_markup=main_menu())
+@router.callback_query(F.data == "remove_asset")
+async def handle_remove_asset_prompt(callback: CallbackQuery, state: FSMContext):
+    """Обработчик кнопки 'Удалить актив'."""
+    await callback.message.answer("Введите символ актива, который хотите удалить (например, AAPL или BTC/USDT):")
+    await state.set_state(PortfolioState.removing_symbol)
     await callback.answer()
-    logger.info(f"Пользователь {user_id} удалил актив {symbol} из портфеля.")
+    logger.info(f"Пользователь {callback.from_user.id} начал удаление актива.")
 
 @router.callback_query(F.data == "alerts")
 async def handle_alerts(callback: CallbackQuery):
@@ -750,13 +751,15 @@ async def handle_remove_alert(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
     logger.info(f"Пользователь {user_id} удалил алерт ID {alert_id}.")
 
-@router.callback_query(F.data.startswith("confirm_alert_"))
+@router.callback_query(F.data == "confirm_alert")
 async def confirm_alert(callback: CallbackQuery, state: FSMContext):
     """Обработчик подтверждения установки алерта."""
     user_id = callback.from_user.id
-    data = callback.data.replace("confirm_alert_", "").split("_")
-    symbol, target_price, condition = data[0], float(data[1]), data[2]
-    asset_type = (await state.get_data())["asset_type"]
+    data = await state.get_data()
+    symbol = data["symbol"]
+    target_price = data["target_price"]
+    condition = data["condition"]
+    asset_type = data["asset_type"]
     await add_alert(user_id, asset_type, symbol, target_price, condition)
     await callback.message.answer(f"Алерт установлен для {symbol}!", reply_markup=main_menu())
     await state.clear()
@@ -770,3 +773,46 @@ async def handle_cancel(callback: CallbackQuery, state: FSMContext):
     await callback.message.answer("Действие отменено.", reply_markup=main_menu())
     await callback.answer()
     logger.info(f"Пользователь {callback.from_user.id} отменил действие.")
+
+@router.message(PortfolioState.removing_symbol)
+async def handle_remove_asset_symbol(message: Message, state: FSMContext):
+    """Обработчик ввода символа для удаления актива."""
+    user_id = message.from_user.id
+    symbol = message.text.strip().upper()
+
+    if symbol.startswith('/'):
+        await message.answer(
+            "Пожалуйста, введите символ актива (например, AAPL или BTC/USDT), а не команду.",
+            reply_markup=main_menu()
+        )
+        await state.clear()
+        logger.info(f"Пользователь {user_id} ввел команду вместо символа: {symbol}")
+        return
+
+    portfolio = await get_portfolio(user_id)
+    if not any(asset['symbol'] == symbol for asset in portfolio):
+        await message.answer(
+            f"Актив {symbol} не найден в вашем портфеле.",
+            reply_markup=main_menu()
+        )
+        await state.clear()
+        logger.warning(f"Актив {symbol} не найден в портфеле пользователя {user_id}")
+        return
+
+    await state.update_data(symbol=symbol)
+    await message.answer(
+        f"Подтвердите удаление актива {symbol} из портфеля:",
+        reply_markup=confirm_remove_asset_keyboard(symbol)
+    )
+    logger.info(f"Пользователь {user_id} запросил подтверждение удаления актива {symbol}")
+
+@router.callback_query(F.data.startswith("confirm_remove_"))
+async def confirm_remove_asset(callback: CallbackQuery, state: FSMContext):
+    """Обработчик подтверждения удаления актива."""
+    user_id = callback.from_user.id
+    symbol = callback.data.replace("confirm_remove_", "")
+    await remove_from_portfolio(user_id, symbol)
+    await callback.message.answer(f"Актив {symbol} удален из портфеля.", reply_markup=main_menu())
+    await state.clear()
+    await callback.answer()
+    logger.info(f"Пользователь {user_id} удалил актив {symbol} из портфеля.")

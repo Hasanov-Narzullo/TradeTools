@@ -46,11 +46,11 @@ def cancel_keyboard() -> ReplyKeyboardMarkup:
         resize_keyboard=True,
         one_time_keyboard=True)
 
-def portfolio_actions_keyboard(symbol: str) -> InlineKeyboardMarkup:
-    """Клавиатура для действий с активом в портфеле."""
+def portfolio_actions_keyboard() -> InlineKeyboardMarkup:
+    """Клавиатура для действий с портфелем."""
     return InlineKeyboardMarkup(inline_keyboard=[
         [
-            InlineKeyboardButton(text="🗑 Удалить", callback_data=f"remove_asset_{symbol}"),
+            InlineKeyboardButton(text="🗑 Удалить актив", callback_data="remove_asset"),
             InlineKeyboardButton(text="🔙 Назад", callback_data="portfolio")
         ]
     ])
@@ -69,6 +69,15 @@ def confirm_alert_keyboard(symbol: str, target_price: float, condition: str) -> 
     return InlineKeyboardMarkup(inline_keyboard=[
         [
             InlineKeyboardButton(text="✅ Подтвердить", callback_data=f"confirm_alert_{symbol}_{target_price}_{condition}"),
+            InlineKeyboardButton(text="🚫 Отмена", callback_data="cancel")
+        ]
+    ])
+
+def confirm_remove_asset_keyboard(symbol: str) -> InlineKeyboardMarkup:
+    """Клавиатура для подтверждения удаления актива."""
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text="✅ Подтвердить", callback_data=f"confirm_remove_{symbol}"),
             InlineKeyboardButton(text="🚫 Отмена", callback_data="cancel")
         ]
     ])
