@@ -2,10 +2,10 @@ from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMar
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 def main_menu() -> InlineKeyboardMarkup:
-    """Обновленное главное меню с разделом алертов."""
+    """Главное меню с обновленным callback_data для котировок."""
     return InlineKeyboardMarkup(inline_keyboard=[
         [
-            InlineKeyboardButton(text="📈 Котировки", callback_data="quotes"),
+            InlineKeyboardButton(text="📈 Котировки", callback_data="quotes_menu"),  # Изменено на quotes_menu
             InlineKeyboardButton(text="💼 Портфель", callback_data="portfolio")
         ],
         [
@@ -19,6 +19,18 @@ def main_menu() -> InlineKeyboardMarkup:
         [
             InlineKeyboardButton(text="📊 Рынок", callback_data="market"),
             InlineKeyboardButton(text="🚫 Отмена", callback_data="cancel")
+        ]
+    ])
+
+def quotes_menu_keyboard() -> InlineKeyboardMarkup:
+    """Клавиатура для меню котировок."""
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text="🔍 Запросить котировку", callback_data="quotes"),  # Оставляем quotes
+            InlineKeyboardButton(text="💼 Цены портфеля", callback_data="portfolio_prices")
+        ],
+        [
+            InlineKeyboardButton(text="🔙 Назад", callback_data="main_menu")
         ]
     ])
 

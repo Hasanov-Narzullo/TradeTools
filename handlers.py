@@ -582,12 +582,20 @@ async def remove_alert_handler(message: Message, state: FSMContext):
     finally:
         await state.clear()
 
-@router.callback_query(F.data == "quotes")
+@router.callback_query(F.data == "quotes_menu")
 async def handle_quotes_menu(callback: CallbackQuery, state: FSMContext):
     """Обработчик кнопки 'Котировки' в главном меню."""
     await callback.message.answer("Выберите действие с котировками:", reply_markup=quotes_menu_keyboard())
     await callback.answer()
     logger.info(f"Пользователь {callback.from_user.id} открыл меню котировок.")
+
+@router.callback_query(F.data == "quotes")
+async def handle_quotes(callback: CallbackQuery, state: FSMContext):
+    """Обработчик кнопки 'Запросить котировку'."""
+    await callback.message.answer("Выберите тип актива:", reply_markup=asset_type_keyboard())
+    await state.set_state(PortfolioState.selecting_asset_type)
+    await callback.answer()
+    logger.info(f"Пользователь {callback.from_user.id} запросил котировки.")
 
 @router.callback_query(F.data == "portfolio")
 async def handle_portfolio(callback: CallbackQuery):
@@ -825,7 +833,7 @@ async def handle_menu_command(callback: CallbackQuery, state: FSMContext):
     elif command == "help":
         await handle_help(callback)
     elif command == "market":
-        await handle_market(callback)
+        await handle_market_overview(callback)
 
 @router.callback_query(F.data == "alerts_menu")
 async def handle_alerts_menu(callback: CallbackQuery):
@@ -848,12 +856,10 @@ async def handle_current_alerts(callback: CallbackQuery):
         return
 
     formatted_alerts = format_alerts(alerts)
-    for alert in alerts:
-        alert_id = alert[0]
-        await callback.message.answer(
-            formatted_alerts,
-            reply_markup=alert_actions_keyboard(alert_id)
-        )
+    await callback.message.answer(
+        formatted_alerts,
+        reply_markup=alerts_menu_keyboard()
+    )
     await callback.answer()
     logger.info(f"Пользователь {callback.from_user.id} запросил текущие алерты.")
 
