@@ -18,7 +18,8 @@ from handlers import register_handlers
 def setup_bot():
     """Настройка бота и регистрация хэндлеров."""
     logger.info("Инициализация бота...")
-    register_handlers(dp)
+    from handlers import router  # Импортируем роутер
+    dp.include_router(router)   # Регистрируем роутер
     logger.info("Хэндлеры зарегистрированы.")
 
 async def on_startup():

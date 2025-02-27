@@ -729,3 +729,55 @@
 2025-02-23 15:49:49.396 | INFO     | api:get_stock_price_yfinance:76 - Цена для TSLA получена через yfinance: 337.79998779296875
 2025-02-23 15:49:49.397 | INFO     | api:get_stock_price:104 - Цена для TSLA получена через yfinance: 337.79998779296875
 2025-02-23 15:49:49.688 | INFO     | handlers:cmd_portfolio:162 - Пользователь 413467341 запросил портфель.
+2025-02-23 18:02:17.997 | INFO     | __main__:<module>:49 - Запуск бота...
+2025-02-23 18:02:17.998 | INFO     | bot:setup_bot:20 - Инициализация бота...
+2025-02-23 18:02:17.998 | INFO     | bot:setup_bot:22 - Хэндлеры зарегистрированы.
+2025-02-23 18:02:17.999 | INFO     | scheduler:setup_scheduler:58 - Планировщик настроен.
+2025-02-23 18:02:18.002 | INFO     | database:init_db:159 - База данных инициализирована.
+2025-02-23 18:02:18.002 | INFO     | bot:on_startup:27 - Бот запущен.
+2025-02-23 18:02:36.708 | ERROR    | api:get_stock_price_finnhub:66 - Ошибка при получении цены для AAPL через Finnhub: 'Settings' object has no attribute 'FINNHUB_API_KEY'
+2025-02-23 18:02:36.709 | WARNING  | api:get_stock_price:107 - Цена для AAPL не найдена через Finnhub, переходим к следующему API
+2025-02-23 18:02:37.388 | INFO     | api:get_stock_price_yfinance:77 - Цена для AAPL получена через yfinance: 245.5500030517578
+2025-02-23 18:02:37.389 | INFO     | api:get_stock_price:105 - Цена для AAPL получена через yfinance: 245.5500030517578
+2025-02-23 18:02:39.843 | INFO     | api:get_crypto_price:128 - Цена криптовалюты BTC/USDT: 95554.0
+2025-02-23 18:02:42.342 | INFO     | api:get_crypto_price:128 - Цена криптовалюты ETH/USDT: 2793.74
+2025-02-23 18:02:42.642 | ERROR    | api:get_stock_price_alpha_vantage:47 - Ошибка при получении цены для TSLA через Alpha Vantage: 'Settings' object has no attribute 'ALPHA_VANTAGE_API_KEY'
+2025-02-23 18:02:42.642 | WARNING  | api:get_stock_price:107 - Цена для TSLA не найдена через Alpha Vantage, переходим к следующему API
+2025-02-23 18:02:42.768 | INFO     | api:get_stock_price_yfinance:77 - Цена для TSLA получена через yfinance: 337.79998779296875
+2025-02-23 18:02:42.769 | INFO     | api:get_stock_price:105 - Цена для TSLA получена через yfinance: 337.79998779296875
+2025-02-23 18:02:42.877 | INFO     | handlers:cmd_portfolio:159 - Пользователь 413467341 запросил портфель.
+2025-02-23 18:02:54.350 | INFO     | handlers:cmd_alerts:567 - Пользователь 413467341 запросил список алертов.
+2025-02-23 18:07:18.013 | INFO     | scheduler:check_alerts:14 - Проверка алертов...
+2025-02-23 18:07:18.016 | INFO     | api:get_stock_price:91 - Использована кэшированная цена для акции TSLA: 337.79998779296875
+2025-02-23 18:07:18.251 | INFO     | database:remove_alert:81 - Алерт 1 удален.
+2025-02-23 18:07:18.251 | INFO     | scheduler:check_alerts:34 - Алерт 1 сработал и удален.
+2025-02-23 18:07:20.153 | INFO     | api:get_crypto_price:128 - Цена криптовалюты BTC/USDT: 95626.66
+2025-02-23 18:07:20.429 | INFO     | api:get_crypto_price:120 - Использована кэшированная цена для криптовалюты BTC/USDT: 95626.66
+2025-02-23 18:07:20.542 | INFO     | database:remove_alert:81 - Алерт 3 удален.
+2025-02-23 18:07:20.543 | INFO     | scheduler:check_alerts:34 - Алерт 3 сработал и удален.
+2025-02-23 18:12:18.008 | INFO     | scheduler:check_alerts:14 - Проверка алертов...
+2025-02-23 18:12:18.009 | INFO     | scheduler:update_quotes:38 - Обновление котировок...
+2025-02-23 18:12:20.861 | INFO     | api:get_crypto_price:128 - Цена криптовалюты BTC/USDT: 95691.98
+2025-02-23 18:12:47.448 | INFO     | handlers:cmd_start:20 - Пользователь 5471291440 запустил бота.
+2025-02-23 18:12:54.605 | INFO     | handlers:cmd_quotes:64 - Пользователь 5471291440 запросил котировки.
+2025-02-23 18:13:03.723 | INFO     | api:get_stock_price_yfinance:77 - Цена для AAPL получена через yfinance: 245.5500030517578
+2025-02-23 18:13:03.723 | INFO     | api:get_stock_price:105 - Цена для AAPL получена через yfinance: 245.5500030517578
+2025-02-23 18:13:03.828 | INFO     | handlers:get_quote:120 - Пользователь 5471291440 запросил цену AAPL (stock).
+2025-02-23 18:13:14.174 | INFO     | handlers:cmd_quotes:64 - Пользователь 5471291440 запросил котировки.
+2025-02-23 18:14:47.498 | INFO     | api:get_crypto_price:128 - Цена криптовалюты BTC/USDT: 95635.52
+2025-02-23 18:14:47.891 | INFO     | handlers:get_quote:120 - Пользователь 5471291440 запросил цену BTC/USDT (crypto).
+2025-02-23 19:34:04.532 | ERROR    | api:get_stock_price_alpha_vantage:47 - Ошибка при получении цены для AAPL через Alpha Vantage: 'Settings' object has no attribute 'ALPHA_VANTAGE_API_KEY'
+2025-02-23 19:34:04.532 | WARNING  | api:get_stock_price:107 - Цена для AAPL не найдена через Alpha Vantage, переходим к следующему API
+2025-02-23 19:34:04.936 | INFO     | api:get_stock_price_yfinance:77 - Цена для AAPL получена через yfinance: 245.5500030517578
+2025-02-23 19:34:04.936 | INFO     | api:get_stock_price:105 - Цена для AAPL получена через yfinance: 245.5500030517578
+2025-02-23 19:34:05.865 | INFO     | handlers:cmd_alerts:567 - Пользователь 413467341 запросил список алертов.
+2025-02-23 19:34:08.088 | INFO     | api:get_crypto_price:128 - Цена криптовалюты BTC/USDT: 95500.0
+2025-02-23 19:34:10.990 | INFO     | api:get_crypto_price:128 - Цена криптовалюты ETH/USDT: 2805.72
+2025-02-23 19:34:11.279 | ERROR    | api:get_stock_price_alpha_vantage:47 - Ошибка при получении цены для TSLA через Alpha Vantage: 'Settings' object has no attribute 'ALPHA_VANTAGE_API_KEY'
+2025-02-23 19:34:11.280 | WARNING  | api:get_stock_price:107 - Цена для TSLA не найдена через Alpha Vantage, переходим к следующему API
+2025-02-23 19:34:11.280 | ERROR    | api:get_stock_price_finnhub:66 - Ошибка при получении цены для TSLA через Finnhub: 'Settings' object has no attribute 'FINNHUB_API_KEY'
+2025-02-23 19:34:11.280 | WARNING  | api:get_stock_price:107 - Цена для TSLA не найдена через Finnhub, переходим к следующему API
+2025-02-23 19:34:11.400 | INFO     | api:get_stock_price_yfinance:77 - Цена для TSLA получена через yfinance: 337.79998779296875
+2025-02-23 19:34:11.400 | INFO     | api:get_stock_price:105 - Цена для TSLA получена через yfinance: 337.79998779296875
+2025-02-23 19:34:11.512 | INFO     | handlers:cmd_portfolio:159 - Пользователь 413467341 запросил портфель.
+2025-02-23 19:35:05.254 | INFO     | bot:on_shutdown:31 - Бот остановлен.

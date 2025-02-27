@@ -4,7 +4,7 @@ from loguru import logger
 
 def format_portfolio(portfolio):
     """
-    Форматирует портфель для отображения пользователю в Telegram с использованием обычного текста.
+    Форматирует портфель для отображения пользователю с инлайн-кнопками для действий.
     """
     if not portfolio:
         return "Портфель пуст."
@@ -48,15 +48,11 @@ def format_portfolio(portfolio):
             logger.error(f"Некорректная структура данных актива: {asset}. Отсутствует ключ: {e}")
             result += f"Ошибка при обработке актива {asset.get('symbol', 'Неизвестный')}\n"
             result += "-" * 20 + "\n"
-        except (ValueError, TypeError) as e:
-            logger.error(f"Ошибка при форматировании данных актива {asset.get('symbol', 'Неизвестный')}: {e}")
-            result += f"Ошибка при обработке актива {asset.get('symbol', 'Неизвестный')}\n"
-            result += "-" * 20 + "\n"
 
     return result
 
 def format_alerts(alerts: list) -> str:
-    """Форматирование списка алертов для вывода в формате обычного текста."""
+    """Форматирование списка алертов для вывода с инлайн-кнопками."""
     if not alerts:
         return "Алерты не установлены."
 

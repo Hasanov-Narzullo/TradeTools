@@ -1,16 +1,26 @@
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-def main_menu() -> ReplyKeyboardMarkup:
-    """Создание главного меню."""
-    return ReplyKeyboardMarkup(
-        keyboard=[
-            [KeyboardButton(text="/quotes"), KeyboardButton(text="/portfolio")],
-            [KeyboardButton(text="/add_to_portfolio"), KeyboardButton(text="/set_alert")],
-            [KeyboardButton(text="/calendar"), KeyboardButton(text="/help")]
+def main_menu() -> InlineKeyboardMarkup:
+    """Создание главного меню с инлайн-кнопками."""
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text="📈 Котировки", callback_data="quotes"),
+            InlineKeyboardButton(text="💼 Портфель", callback_data="portfolio")
         ],
-        resize_keyboard=True,
-        one_time_keyboard=True
-    )
+        [
+            InlineKeyboardButton(text="➕ Добавить актив", callback_data="add_to_portfolio"),
+            InlineKeyboardButton(text="🔔 Установить алерт", callback_data="set_alert")
+        ],
+        [
+            InlineKeyboardButton(text="📅 Календарь", callback_data="calendar"),
+            InlineKeyboardButton(text="ℹ️ Помощь", callback_data="help")
+        ],
+        [
+            InlineKeyboardButton(text="📊 Рынок", callback_data="market"),
+            InlineKeyboardButton(text="🚫 Отмена", callback_data="cancel")
+        ]
+    ])
 
 def asset_type_keyboard() -> InlineKeyboardMarkup:
     """Создание клавиатуры для выбора типа актива (акции или криптовалюты)."""
@@ -35,3 +45,30 @@ def cancel_keyboard() -> ReplyKeyboardMarkup:
         keyboard=[[KeyboardButton(text="Отмена")]],
         resize_keyboard=True,
         one_time_keyboard=True)
+
+def portfolio_actions_keyboard(symbol: str) -> InlineKeyboardMarkup:
+    """Клавиатура для действий с активом в портфеле."""
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text="🗑 Удалить", callback_data=f"remove_asset_{symbol}"),
+            InlineKeyboardButton(text="🔙 Назад", callback_data="portfolio")
+        ]
+    ])
+
+def alert_actions_keyboard(alert_id: int) -> InlineKeyboardMarkup:
+    """Клавиатура для действий с алертом."""
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text="🗑 Удалить", callback_data=f"remove_alert_{alert_id}"),
+            InlineKeyboardButton(text="🔙 Назад", callback_data="alerts")
+        ]
+    ])
+
+def confirm_alert_keyboard(symbol: str, target_price: float, condition: str) -> InlineKeyboardMarkup:
+    """Клавиатура для подтверждения установки алерта."""
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text="✅ Подтвердить", callback_data=f"confirm_alert_{symbol}_{target_price}_{condition}"),
+            InlineKeyboardButton(text="🚫 Отмена", callback_data="cancel")
+        ]
+    ])
