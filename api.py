@@ -676,6 +676,3 @@ async def fetch_dividends_and_earnings(symbol: str) -> list:
     except Exception as e:
         logger.error(f"Общая ошибка при получении данных для {symbol}: {e}")
         return events
-
-test_events = asyncio.run(fetch_eodhd_economic_calendar())
-print(test_events)
