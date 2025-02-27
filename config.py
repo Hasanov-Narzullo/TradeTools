@@ -14,6 +14,7 @@ class APIConfig:
     FINNHUB_API_KEY = "cutg85hr01qrsirmlv1gcutg85hr01qrsirmlv20"
     CRYPTO_API_URL = "https://api.example.com/crypto"
     STOCK_API_URL = "https://api.example.com/stocks"
+    EODHD_API_KEY = '67c06446457f30.71105398'
 
 class SchedulerConfig:
     TIMEZONE = "UTC"  # Часовой пояс для задач
