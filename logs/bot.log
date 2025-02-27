@@ -1590,3 +1590,34 @@
 2025-02-27 15:24:51.079 | INFO     | database:get_events:223 - Получено 0 событий для пользователя 413467341, тип: macro, только портфель: False
 2025-02-27 15:24:51.080 | INFO     | handlers:handle_calendar_filter:1019 - Получено 0 событий для фильтра macro
 2025-02-27 15:24:51.266 | INFO     | handlers:handle_calendar_filter:1025 - Пользователь 413467341 запросил события (пусто, фильтр: macro).
+2025-02-27 15:27:06.679 | INFO     | __main__:<module>:49 - Запуск бота...
+2025-02-27 15:27:06.679 | INFO     | bot:setup_bot:20 - Инициализация бота...
+2025-02-27 15:27:06.680 | INFO     | bot:setup_bot:23 - Хэндлеры зарегистрированы.
+2025-02-27 15:27:06.680 | INFO     | scheduler:setup_scheduler:116 - Планировщик настроен.
+2025-02-27 15:27:06.682 | INFO     | database:init_db:26 - Таблица portfolios создана или уже существует.
+2025-02-27 15:27:06.682 | INFO     | database:init_db:40 - Таблица alerts создана или уже существует.
+2025-02-27 15:27:06.682 | INFO     | database:init_db:55 - Таблица events создана или уже существует.
+2025-02-27 15:27:06.682 | INFO     | database:init_db:66 - База данных успешно инициализирована.
+2025-02-27 15:27:06.682 | INFO     | bot:on_startup:28 - Бот запущен.
+2025-02-27 15:27:14.410 | INFO     | database:get_events:223 - Получено 0 событий для пользователя 413467341, тип: все, только портфель: False
+2025-02-27 15:27:14.410 | INFO     | handlers:handle_calendar_filter:1019 - Получено 0 событий для фильтра all
+2025-02-27 15:27:14.627 | INFO     | handlers:handle_calendar_filter:1025 - Пользователь 413467341 запросил события (пусто, фильтр: all).
+2025-02-27 15:27:15.800 | INFO     | database:get_events:223 - Получено 0 событий для пользователя 413467341, тип: dividends, только портфель: False
+2025-02-27 15:27:15.801 | INFO     | handlers:handle_calendar_filter:1019 - Получено 0 событий для фильтра dividends
+2025-02-27 15:27:15.894 | INFO     | handlers:handle_calendar_filter:1025 - Пользователь 413467341 запросил события (пусто, фильтр: dividends).
+2025-02-27 15:27:16.645 | INFO     | database:get_events:223 - Получено 0 событий для пользователя 413467341, тип: macro, только портфель: False
+2025-02-27 15:27:16.646 | INFO     | handlers:handle_calendar_filter:1019 - Получено 0 событий для фильтра macro
+2025-02-27 15:27:16.730 | INFO     | handlers:handle_calendar_filter:1025 - Пользователь 413467341 запросил события (пусто, фильтр: macro).
+2025-02-27 15:27:17.350 | INFO     | database:get_events:223 - Получено 0 событий для пользователя 413467341, тип: earnings, только портфель: False
+2025-02-27 15:27:17.351 | INFO     | handlers:handle_calendar_filter:1019 - Получено 0 событий для фильтра earnings
+2025-02-27 15:27:17.436 | INFO     | handlers:handle_calendar_filter:1025 - Пользователь 413467341 запросил события (пусто, фильтр: earnings).
+2025-02-27 15:27:17.761 | INFO     | database:get_events:223 - Получено 0 событий для пользователя 413467341, тип: press, только портфель: False
+2025-02-27 15:27:17.761 | INFO     | handlers:handle_calendar_filter:1019 - Получено 0 событий для фильтра press
+2025-02-27 15:27:17.844 | INFO     | handlers:handle_calendar_filter:1025 - Пользователь 413467341 запросил события (пусто, фильтр: press).
+2025-02-27 15:32:06.690 | INFO     | scheduler:check_alerts:15 - Проверка алертов...
+2025-02-27 15:37:06.694 | INFO     | scheduler:check_alerts:15 - Проверка алертов...
+2025-02-27 15:37:06.696 | INFO     | scheduler:update_quotes:40 - Обновление котировок...
+2025-02-27 15:42:06.695 | INFO     | scheduler:check_alerts:15 - Проверка алертов...
+2025-02-27 15:47:06.690 | INFO     | scheduler:check_alerts:15 - Проверка алертов...
+2025-02-27 15:47:06.693 | INFO     | scheduler:update_quotes:40 - Обновление котировок...
+2025-02-27 15:52:06.689 | INFO     | scheduler:check_alerts:15 - Проверка алертов...

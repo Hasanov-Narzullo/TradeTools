@@ -1,20 +1,19 @@
 import random
+import requests
 import yfinance as yf
 import ccxt
 import asyncio
 from asyncio import sleep
 from typing import Optional
+from aiocache.serializers import JsonSerializer
 from config import settings
 import ccxt.async_support as ccxt
 import aiohttp
-from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
 from yfinance import Ticker
 from loguru import logger
-from aiocache import cached
-from economic_calendar import Investing
-from database import add_event
-import finnhub
+from aiocache import cached, Cache
+
 
 
 _stock_price_cache: dict = {}
@@ -283,102 +282,120 @@ async def get_market_data() -> dict:
 
     return market_data
 
-# Инициализация клиента Finnhub
-finnhub_client = finnhub.Client(api_key="cv05ju1r01qkg4a6b9cgcv05ju1r01qkg4a6b9d0")
+
+ALPHA_VANTAGE_API_KEY = "ZDFVKRCE8UTMR2SP"
 
 # Типы событий
 EVENT_TYPES = {
     "macro": "Общеэкономические",
     "dividends": "Дивиденды",
     "earnings": "Отчетности",
-    "ipo": "IPO",
     "press": "Пресс-конференции"
 }
 
-@cached(ttl=3600)
-async def fetch_economic_calendar() -> list:
-    """Получение экономического календаря через Finnhub API (IPO, экономические события, отчетности)."""
+cache = Cache(Cache.MEMORY, serializer=JsonSerializer(), ttl=5 * 3600)  # 5 часов в секундах
+
+
+@cached(ttl=5 * 3600, cache=Cache.MEMORY, serializer=JsonSerializer())
+async def fetch_alpha_vantage_earnings() -> list:
+    """Получение календаря отчетностей через Alpha Vantage API."""
     events = []
+    url = f"https://www.alphavantage.co/query?function=EARNINGS_CALENDAR&horizon=3month&apikey={ALPHA_VANTAGE_API_KEY}"
     try:
-        # Получаем IPO календарь за последние 7 дней и следующие 7 дней
-        start_date = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
-        end_date = (datetime.now() + timedelta(days=7)).strftime("%Y-%m-%d")
-        logger.info(f"Запрос IPO календаря с {start_date} по {end_date}")
-        ipo_calendar = finnhub_client.ipo_calendar(_from=start_date, to=end_date)
+        logger.info("Запрос календаря отчетностей через Alpha Vantage")
+        response = requests.get(url)
+        if response.status_code == 200:
+            data = response.text.splitlines()
+            if len(data) <= 1:
+                logger.warning("Календарь отчетностей Alpha Vantage пуст")
+                return events
 
-        if ipo_calendar and "ipoCalendar" in ipo_calendar:
-            logger.info(f"Получено {len(ipo_calendar['ipoCalendar'])} IPO событий")
-            for event in ipo_calendar["ipoCalendar"]:
+            for line in data[1:]:  # Пропускаем заголовок
                 try:
-                    event_date = datetime.strptime(event["date"], "%Y-%m-%d").strftime("%Y-%m-%d %H:%M:%S")
+                    symbol, name, report_date, fiscal_date, estimate, currency = line.split(',')
+                    event_date = datetime.strptime(report_date, "%Y-%m-%d").strftime("%Y-%m-%d %H:%M:%S")
                     events.append({
                         "event_date": event_date,
-                        "title": f"IPO: {event['name']}",
-                        "description": f"Биржа: {event['exchange']}, Количество акций: {event['numberOfShares']}, Цена: {event['price']}, Статус: {event['status']}, Символ: {event['symbol']}, Общая стоимость: {event['totalSharesValue']}",
-                        "source": "Finnhub",
-                        "type": "ipo",
-                        "symbol": event["symbol"]
-                    })
-                    logger.debug(f"Добавлено IPO событие: {event['name']}")
-                except Exception as e:
-                    logger.error(f"Ошибка при обработке IPO события: {e}")
-                    continue
-        else:
-            logger.warning("IPO календарь пуст или не содержит данных")
-
-        # Получаем экономические события (например, ВВП, безработица)
-        logger.info(f"Запрос экономического календаря с {start_date} по {end_date}")
-        economic_calendar = finnhub_client.economic_calendar(_from=start_date, to=end_date)
-        if economic_calendar and "economicCalendar" in economic_calendar:
-            logger.info(f"Получено {len(economic_calendar['economicCalendar'])} экономических событий")
-            for event in economic_calendar["economicCalendar"]:
-                try:
-                    event_date = datetime.strptime(event["date"], "%Y-%m-%d %H:%M:%S").strftime("%Y-%m-%d %H:%M:%S")
-                    events.append({
-                        "event_date": event_date,
-                        "title": event["event"],
-                        "description": f"Страна: {event['country']}, Влияние: {event['impact']}, Прогноз: {event.get('forecast', '')}, Предыдущее: {event.get('previous', '')}",
-                        "source": "Finnhub",
-                        "type": "macro",
-                        "symbol": None
-                    })
-                    logger.debug(f"Добавлено экономическое событие: {event['event']}")
-                except Exception as e:
-                    logger.error(f"Ошибка при обработке экономического события: {e}")
-                    continue
-        else:
-            logger.warning("Экономический календарь пуст или не содержит данных")
-
-        # Получаем отчетности (earnings)
-        logger.info(f"Запрос календаря отчетностей с {start_date} по {end_date}")
-        earnings_calendar = finnhub_client.earnings_calendar(_from=start_date, to=end_date)
-        if earnings_calendar and "earningsCalendar" in earnings_calendar:
-            logger.info(f"Получено {len(earnings_calendar['earningsCalendar'])} событий отчетностей")
-            for event in earnings_calendar["earningsCalendar"]:
-                try:
-                    event_date = datetime.strptime(event["date"], "%Y-%m-%d").strftime("%Y-%m-%d %H:%M:%S")
-                    events.append({
-                        "event_date": event_date,
-                        "title": f"Отчетность для {event['symbol']}",
-                        "description": f"EPS прогноз: {event.get('epsEstimate', '')}, EPS фактический: {event.get('epsActual', '')}, Выручка прогноз: {event.get('revenueEstimate', '')}, Выручка фактическая: {event.get('revenueActual', '')}",
-                        "source": "Finnhub",
+                        "title": f"Отчетность для {symbol}",
+                        "description": f"Компания: {name}, Ожидаемый EPS: {estimate} {currency}, Фискальная дата: {fiscal_date}",
+                        "source": "Alpha Vantage",
                         "type": "earnings",
-                        "symbol": event["symbol"]
+                        "symbol": symbol
                     })
-                    logger.debug(f"Добавлено событие отчетности для {event['symbol']}")
+                    logger.debug(f"Добавлено событие отчетности для {symbol}")
                 except Exception as e:
                     logger.error(f"Ошибка при обработке события отчетности: {e}")
                     continue
         else:
-            logger.warning("Календарь отчетностей пуст или не содержит данных")
-
+            logger.error(f"Ошибка при запросе к Alpha Vantage: {response.status_code}")
     except Exception as e:
-        logger.error(f"Ошибка при получении экономического календаря с Finnhub: {e}")
-
-    logger.info(f"Получено {len(events)} событий с Finnhub")
+        logger.error(f"Ошибка при получении данных Alpha Vantage: {e}")
+    logger.info(f"Получено {len(events)} событий отчетностей с Alpha Vantage")
     return events
 
-@cached(ttl=3600)
+
+@cached(ttl=5 * 3600, cache=Cache.MEMORY, serializer=JsonSerializer())
+async def fetch_alpha_vantage_macro() -> list:
+    """Получение макроэкономических событий через Alpha Vantage API (например, ВВП, CPI)."""
+    events = []
+    # Пример макроэкономического индикатора (ВВП)
+    indicators = [
+        {"function": "REAL_GDP", "interval": "annual", "name": "ВВП (реальный)"},
+        {"function": "CPI", "interval": "monthly", "name": "Индекс потребительских цен (CPI)"}
+    ]
+
+    for indicator in indicators:
+        url = f"https://www.alphavantage.co/query?function={indicator['function']}&interval={indicator['interval']}&apikey={ALPHA_VANTAGE_API_KEY}"
+        try:
+            logger.info(f"Запрос макроэкономического индикатора {indicator['name']} через Alpha Vantage")
+            response = requests.get(url)
+            if response.status_code == 200:
+                data = response.json()
+                if "data" in data:
+                    for item in data["data"]:
+                        try:
+                            event_date = datetime.strptime(item["date"], "%Y-%m-%d").strftime("%Y-%m-%d %H:%M:%S")
+                            events.append({
+                                "event_date": event_date,
+                                "title": f"{indicator['name']}",
+                                "description": f"Значение: {item['value']}",
+                                "source": "Alpha Vantage",
+                                "type": "macro",
+                                "symbol": None
+                            })
+                            logger.debug(f"Добавлено макроэкономическое событие: {indicator['name']}")
+                        except Exception as e:
+                            logger.error(f"Ошибка при обработке макроэкономического события: {e}")
+                            continue
+                else:
+                    logger.warning(f"Макроэкономический индикатор {indicator['name']} пуст")
+            else:
+                logger.error(f"Ошибка при запросе к Alpha Vantage: {response.status_code}")
+        except Exception as e:
+            logger.error(f"Ошибка при получении данных Alpha Vantage: {e}")
+    logger.info(f"Получено {len(events)} макроэкономических событий с Alpha Vantage")
+    return events
+
+
+@cached(ttl=5 * 3600, cache=Cache.MEMORY, serializer=JsonSerializer())
+async def fetch_economic_calendar() -> list:
+    """Получение экономического календаря через Alpha Vantage API."""
+    events = []
+    try:
+        # Получаем отчетности
+        earnings_events = await fetch_alpha_vantage_earnings()
+        events.extend(earnings_events)
+
+        # Получаем макроэкономические события
+        macro_events = await fetch_alpha_vantage_macro()
+        events.extend(macro_events)
+    except Exception as e:
+        logger.error(f"Ошибка при получении экономического календаря: {e}")
+    logger.info(f"Получено {len(events)} событий с Alpha Vantage")
+    return events
+
+
+@cached(ttl=5 * 3600, cache=Cache.MEMORY, serializer=JsonSerializer())
 async def fetch_dividends_and_earnings(symbol: str) -> list:
     """Получение дивидендов для актива через yfinance."""
     events = []
@@ -401,11 +418,11 @@ async def fetch_dividends_and_earnings(symbol: str) -> list:
                 logger.debug(f"Добавлено событие дивидендов для {symbol}")
     except Exception as e:
         logger.error(f"Ошибка при получении дивидендов для {symbol}: {e}")
-
     logger.info(f"Получено {len(events)} событий для актива {symbol} через yfinance")
     return events
 
-@cached(ttl=3600)
+
+@cached(ttl=5 * 3600, cache=Cache.MEMORY, serializer=JsonSerializer())
 async def fetch_test_events() -> list:
     """Добавление тестовых событий для проверки системы."""
     events = []
