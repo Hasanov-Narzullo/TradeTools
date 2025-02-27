@@ -233,8 +233,6 @@ MARKET_ASSETS = {
     }
 }
 
-finnhub_client = finnhub.Client(api_key="cutg85hr01qrsirmlv1gcutg85hr01qrsirmlv20")
-
 @cached(ttl=300)  # Кэшируем данные на 5 минут
 async def get_market_data() -> dict:
     """Получение данных о рынке (индексы, золото, нефть, газ, биткоин)."""
@@ -285,10 +283,15 @@ async def get_market_data() -> dict:
 
     return market_data
 
+# Инициализация клиента Finnhub
+finnhub_client = finnhub.Client(api_key="cutg85hr01qrsirmlv1gcutg85hr01qrsirmlv20")
+
+# Типы событий
 EVENT_TYPES = {
     "macro": "Общеэкономические",
     "dividends": "Дивиденды",
     "earnings": "Отчетности",
+    "ipo": "IPO",
     "press": "Пресс-конференции"
 }
 
@@ -375,7 +378,6 @@ async def fetch_economic_calendar() -> list:
     logger.info(f"Получено {len(events)} событий с Finnhub")
     return events
 
-
 @cached(ttl=3600)
 async def fetch_dividends_and_earnings(symbol: str) -> list:
     """Получение дивидендов для актива через yfinance."""
@@ -402,7 +404,6 @@ async def fetch_dividends_and_earnings(symbol: str) -> list:
 
     logger.info(f"Получено {len(events)} событий для актива {symbol} через yfinance")
     return events
-
 
 @cached(ttl=3600)
 async def fetch_test_events() -> list:
