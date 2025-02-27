@@ -7,7 +7,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from config import settings
 from scheduler import setup_scheduler
 from alert_checker import check_alerts
-
+import platform
 
 
 # Установка SelectorEventLoop на Windows
