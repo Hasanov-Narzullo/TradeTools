@@ -284,7 +284,7 @@ async def get_market_data() -> dict:
     return market_data
 
 # Инициализация клиента Finnhub
-finnhub_client = finnhub.Client(api_key="cutg85hr01qrsirmlv1gcutg85hr01qrsirmlv20")
+finnhub_client = finnhub.Client(api_key="cv05ju1r01qkg4a6b9cgcv05ju1r01qkg4a6b9d0")
 
 # Типы событий
 EVENT_TYPES = {
