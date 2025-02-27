@@ -3,7 +3,8 @@ from loguru import logger
 
 from config import settings
 from database import get_alerts, remove_alert, add_event
-from api import get_stock_price, get_crypto_price, fetch_economic_calendar, fetch_dividends_and_earnings
+from api import get_stock_price, get_crypto_price, fetch_economic_calendar, fetch_dividends_and_earnings, \
+    fetch_test_events
 from bot import bot
 import aiosqlite
 from datetime import datetime, timedelta
@@ -73,7 +74,20 @@ async def update_calendar():
             )
             logger.debug(f"Добавлено событие для актива {symbol}: {event['title']}")
 
-    logger.info(f"Календарь событий обновлен. Добавлено {len(economic_events)} общеэкономических событий и событий для {len(symbols)} активов.")
+    # Добавляем тестовые события для проверки
+    test_events = await fetch_test_events()
+    for event in test_events:
+        await add_event(
+            event_date=event["event_date"],
+            title=event["title"],
+            description=event["description"],
+            source=event["source"],
+            event_type=event["type"],
+            symbol=event["symbol"]
+        )
+        logger.debug(f"Добавлено тестовое событие: {event['title']}")
+
+    logger.info(f"Календарь событий обновлен. Добавлено {len(economic_events)} общеэкономических событий, событий для {len(symbols)} активов и {len(test_events)} тестовых событий.")
 
 def setup_scheduler(scheduler: AsyncIOScheduler):
     """Настройка планировщика задач."""

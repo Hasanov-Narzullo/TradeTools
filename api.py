@@ -290,10 +290,10 @@ EVENT_TYPES = {
     "press": "Пресс-конференции"
 }
 
-@cached(ttl=3600)
+@cached(ttl=3600)  # Кэшируем на 1 час
 async def fetch_economic_calendar() -> list:
-    """Парсинг экономического календаря с Investing.com."""
-    url = "https://www.investing.com/economic-calendar/"
+    """Парсинг экономического календаря с Trading Economics."""
+    url = "https://tradingeconomics.com/calendar"
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
     }
@@ -303,32 +303,36 @@ async def fetch_economic_calendar() -> list:
         async with aiohttp.ClientSession() as session:
             async with session.get(url, headers=headers) as response:
                 if response.status != 200:
-                    logger.error(f"Ошибка при запросе к Investing.com: {response.status}")
+                    logger.error(f"Ошибка при запросе к Trading Economics: {response.status}")
                     return events
 
                 soup = BeautifulSoup(await response.text(), "html.parser")
-                table = soup.find("table", {"id": "economicCalendarData"})
+                table = soup.find("table", {"id": "calendar"})
                 if not table:
-                    logger.error("Таблица событий не найдена на Investing.com")
+                    logger.error("Таблица событий не найдена на Trading Economics")
                     return events
 
-                rows = table.find("tbody").find_all("tr", class_="js-event-item")
+                rows = table.find("tbody").find_all("tr")
                 if not rows:
-                    logger.warning("События не найдены на Investing.com")
+                    logger.warning("События не найдены на Trading Economics")
                     return events
 
                 for row in rows:
                     try:
-                        event_time = row.find("td", class_="time").text.strip()
+                        cells = row.find_all("td")
+                        if len(cells) < 4:
+                            continue
+
+                        event_time = cells[0].text.strip()
                         event_date = datetime.now().strftime("%Y-%m-%d")  # Улучшить парсинг даты
-                        event_title = row.find("td", class_="event").text.strip()
-                        event_impact = row.find("td", class_="sentiment").get("title", "Low Impact")
+                        event_title = cells[2].text.strip()
+                        event_impact = cells[3].text.strip() or "Low Impact"
 
                         events.append({
                             "event_date": f"{event_date} {event_time}",
                             "title": event_title,
                             "description": f"Влияние: {event_impact}",
-                            "source": "Investing.com",
+                            "source": "Trading Economics",
                             "type": "macro"
                         })
                         logger.debug(f"Добавлено событие: {event_title}")
@@ -336,13 +340,13 @@ async def fetch_economic_calendar() -> list:
                         logger.error(f"Ошибка при парсинге события: {e}")
                         continue
     except Exception as e:
-        logger.error(f"Ошибка при парсинге Investing.com: {e}")
+        logger.error(f"Ошибка при парсинге Trading Economics: {e}")
 
-    logger.info(f"Получено {len(events)} общеэкономических событий с Investing.com")
+    logger.info(f"Получено {len(events)} общеэкономических событий с Trading Economics")
     return events
 
 
-@cached(ttl=3600)
+@cached(ttl=3600)  # Кэшируем на 1 час
 async def fetch_dividends_and_earnings(symbol: str) -> list:
     """Получение дивидендов и отчетностей для актива через yfinance."""
     events = []
@@ -352,20 +356,21 @@ async def fetch_dividends_and_earnings(symbol: str) -> list:
         earnings_dates = ticker.earnings_dates
 
         # Дивиденды
-        for date, amount in dividends.items():
-            event_date = date.strftime("%Y-%m-%d %H:%M:%S")
-            events.append({
-                "event_date": event_date,
-                "title": f"Дивиденды для {symbol}",
-                "description": f"Сумма: ${amount:.2f}",
-                "source": "Yahoo Finance",
-                "type": "dividends",
-                "symbol": symbol
-            })
-            logger.debug(f"Добавлено событие дивидендов для {symbol}")
+        if dividends is not None and not dividends.empty:
+            for date, amount in dividends.items():
+                event_date = date.strftime("%Y-%m-%d %H:%M:%S")
+                events.append({
+                    "event_date": event_date,
+                    "title": f"Дивиденды для {symbol}",
+                    "description": f"Сумма: ${amount:.2f}",
+                    "source": "Yahoo Finance",
+                    "type": "dividends",
+                    "symbol": symbol
+                })
+                logger.debug(f"Добавлено событие дивидендов для {symbol}")
 
         # Отчетности
-        if earnings_dates is not None:
+        if earnings_dates is not None and not earnings_dates.empty:
             for date, _ in earnings_dates.iterrows():
                 event_date = date.strftime("%Y-%m-%d %H:%M:%S")
                 events.append({
@@ -381,5 +386,42 @@ async def fetch_dividends_and_earnings(symbol: str) -> list:
         logger.error(f"Ошибка при получении событий для {symbol}: {e}")
 
     logger.info(f"Получено {len(events)} событий для актива {symbol}")
+    return events
+
+
+async def fetch_test_events() -> list:
+    """Добавление тестовых событий для проверки системы."""
+    events = []
+    current_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    # Тестовые общеэкономические события
+    events.append({
+        "event_date": current_date,
+        "title": "Тестовое общеэкономическое событие",
+        "description": "Влияние: Высокое",
+        "source": "Test Source",
+        "type": "macro",
+        "symbol": None
+    })
+
+    # Тестовые события для активов
+    events.append({
+        "event_date": current_date,
+        "title": "Тестовые дивиденды для AAPL",
+        "description": "Сумма: $0.22",
+        "source": "Test Source",
+        "type": "dividends",
+        "symbol": "AAPL"
+    })
+    events.append({
+        "event_date": current_date,
+        "title": "Тестовая отчетность для AAPL",
+        "description": "Отчетность компании",
+        "source": "Test Source",
+        "type": "earnings",
+        "symbol": "AAPL"
+    })
+
+    logger.info(f"Добавлено {len(events)} тестовых событий")
     return events
 
