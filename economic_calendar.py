@@ -148,7 +148,7 @@ class Investing:
                             events.append({
                                 "event_date": event_date,
                                 "title": news['name'] or "Неизвестное событие",
-                                "description": f"Влияние: {news['impact']} звезд, Страна: {news['country']}, Тип: {news['type']}",
+                                "description": f"Влияние: {news['impact']} звезд, Страна: {news['country']}, Тип: {news['type']}, Прогноз: {news['fore']}, Предыдущее: {news['prev']}",
                                 "source": "Investing.com",
                                 "type": "macro",
                                 "symbol": None
