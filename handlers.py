@@ -414,14 +414,32 @@ async def select_alert_condition(callback: CallbackQuery, state: FSMContext):
     logger.info(f"Пользователь {callback.from_user.id} выбрал условие алерта: {condition}")
 
 @router.message(Command("calendar"))
-async def cmd_calendar(message: Message):
-    """Обработчик команды /calendar для просмотра календаря событий."""
-    events = await get_events()
-    if events:
-        await message.answer(format_events(events))
-    else:
-        await message.answer("Календарь событий пуст.")
-    logger.info(f"Пользователь {message.from_user.id} запросил календарь событий.")
+async def show_calendar(message: Message, state: FSMContext):
+    """Показывает календарь событий с возможностью фильтрации."""
+    user_id = message.from_user.id
+    try:
+        all_events = get_sample_events()  # Получаем все события
+        if not all_events:
+            await message.answer(
+                "Событий не найдено. Попробуйте обновить календарь позже.",
+                reply_markup=calendar_menu_keyboard()
+            )
+            logger.info(f"Пользователь {user_id} запросил календарь событий (пусто).")
+            return
+
+        formatted_events, total_pages = format_events(all_events, page=1)
+        await message.answer(
+            formatted_events,
+            reply_markup=calendar_menu_keyboard()
+        )
+        await state.update_data(calendar_filter="all", current_page=1, total_pages=total_pages)
+        logger.info(f"Пользователь {user_id} запросил календарь событий (страница 1, событий: {len(all_events)}).")
+    except Exception as e:
+        logger.error(f"Ошибка при отображении календаря: {e}")
+        await message.answer(
+            "Произошла ошибка при отображении календаря. Пожалуйста, попробуйте снова.",
+            reply_markup=calendar_menu_keyboard()
+        )
 
 @router.message(Command("remove_from_portfolio"))
 async def cmd_remove_from_portfolio(message: Message, state: FSMContext):
@@ -670,14 +688,30 @@ async def handle_calendar_menu(callback: CallbackQuery, state: FSMContext):
     """Обработчик кнопки 'Календарь' в главном меню."""
     user_id = callback.from_user.id
     try:
-        keyboard = get_category_keyboard()
-        await callback.message.answer("Выберите категорию событий:", reply_markup=keyboard)
-        await state.set_state(CalendarStates.viewing_calendar)
+        all_events = get_sample_events()  # Получаем все события
+        if not all_events:
+            await callback.message.answer(
+                "Событий не найдено. Попробуйте обновить календарь позже.",
+                reply_markup=calendar_menu_keyboard()
+            )
+            logger.info(f"Пользователь {user_id} запросил календарь событий (пусто).")
+            await callback.answer()
+            return
+
+        formatted_events, total_pages = format_events(all_events, page=1)
+        await callback.message.answer(
+            formatted_events,
+            reply_markup=calendar_menu_keyboard()
+        )
+        await state.update_data(calendar_filter="all", current_page=1, total_pages=total_pages)
         await callback.answer()
-        logger.info(f"Пользователь {user_id} открыл меню календаря.")
+        logger.info(f"Пользователь {user_id} открыл меню календаря (страница 1, событий: {len(all_events)}).")
     except Exception as e:
         logger.error(f"Ошибка при открытии меню календаря: {e}")
-        await callback.message.answer("Произошла ошибка при открытии календаря.")
+        await callback.message.answer(
+            "Произошла ошибка при открытии календаря. Пожалуйста, попробуйте снова.",
+            reply_markup=calendar_menu_keyboard()
+        )
         await callback.answer()
 
 @router.callback_query(F.data == "help")
@@ -1060,7 +1094,7 @@ async def handle_calendar_filter(callback: CallbackQuery, state: FSMContext):
             formatted_events,
             reply_markup=pagination_keyboard(current_page=1, total_pages=total_pages, prefix="calendar")
         )
-        await state.update_data(calendar_filter=filter_type)
+        await state.update_data(calendar_filter=filter_type, current_page=1, total_pages=total_pages)
         await callback.answer()
         logger.info(f"Пользователь {user_id} запросил события (фильтр: {filter_type}, страница 1, событий: {len(filtered_events)}).")
     except Exception as e:
@@ -1070,6 +1104,7 @@ async def handle_calendar_filter(callback: CallbackQuery, state: FSMContext):
             reply_markup=calendar_menu_keyboard()
         )
         await callback.answer()
+
 
 
 @router.callback_query(F.data.startswith("calendar_page_"))
