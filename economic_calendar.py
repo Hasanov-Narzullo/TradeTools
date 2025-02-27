@@ -46,7 +46,13 @@ class Investing:
                 await page.goto(self.uri, wait_until="networkidle")
 
                 # Ждем загрузки таблицы
-                await page.wait_for_selector('table#economicCalendarData', timeout=30000)
+                try:
+                    await page.wait_for_selector('table#economicCalendarData', timeout=30000)
+                except Exception as e:
+                    logger.error(f"Ошибка при ожидании таблицы: {e}")
+                    await browser.close()
+                    return events
+
                 html = await page.content()
                 await browser.close()
 
@@ -130,10 +136,14 @@ class Investing:
                         fore = row.find('td', {"class": "fore"})
                         if fore:
                             news['fore'] = fore.text.strip()
+                        else:
+                            news['fore'] = ''
 
                         prev = row.find('td', {"class": "prev"})
                         if prev:
                             news['prev'] = prev.text.strip()
+                        else:
+                            news['prev'] = ''
 
                         # Определение сигнала
                         if bold and "blackFont" in bold.get('class', []):
@@ -149,7 +159,7 @@ class Investing:
                         events.append({
                             "event_date": event_date,
                             "title": news['name'] or "Неизвестное событие",
-                            "description": f"Влияние: {news['impact']} звезд, Страна: {news['country']}, Тип: {news['type']}, Прогноз: {news['fore']}, Предыдущее: {news['prev']}",
+                            "description": f"Влияние: {news['impact']} звезд, Страна: {news['country']}, Тип: {news['type'] or 'unknown'}, Прогноз: {news['fore']}, Предыдущее: {news['prev']}",
                             "source": "Investing.com",
                             "type": "macro",
                             "symbol": None
