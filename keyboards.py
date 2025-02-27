@@ -1,11 +1,10 @@
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 def main_menu() -> InlineKeyboardMarkup:
     """Главное меню с обновленным callback_data для котировок."""
     return InlineKeyboardMarkup(inline_keyboard=[
         [
-            InlineKeyboardButton(text="📈 Котировки", callback_data="quotes_menu"),  # Изменено на quotes_menu
+            InlineKeyboardButton(text="📈 Котировки", callback_data="quotes_menu"),
             InlineKeyboardButton(text="💼 Портфель", callback_data="portfolio")
         ],
         [
@@ -26,7 +25,7 @@ def quotes_menu_keyboard() -> InlineKeyboardMarkup:
     """Клавиатура для меню котировок."""
     return InlineKeyboardMarkup(inline_keyboard=[
         [
-            InlineKeyboardButton(text="🔍 Запросить котировку", callback_data="quotes"),  # Оставляем quotes
+            InlineKeyboardButton(text="🔍 Запросить котировку", callback_data="quotes"),
             InlineKeyboardButton(text="💼 Цены портфеля", callback_data="portfolio_prices")
         ],
         [
@@ -43,20 +42,20 @@ def asset_type_keyboard() -> InlineKeyboardMarkup:
 
 def alert_condition_keyboard() -> InlineKeyboardMarkup:
     """Клавиатура для выбора условия алерта."""
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+    return InlineKeyboardMarkup(inline_keyboard=[
         [
             InlineKeyboardButton(text="Выше", callback_data="above"),
             InlineKeyboardButton(text="Ниже", callback_data="below")
         ]
     ])
-    return keyboard
 
 def cancel_keyboard() -> ReplyKeyboardMarkup:
     """Создание клавиатуры для отмены действия."""
     return ReplyKeyboardMarkup(
         keyboard=[[KeyboardButton(text="Отмена")]],
         resize_keyboard=True,
-        one_time_keyboard=True)
+        one_time_keyboard=True
+    )
 
 def portfolio_actions_keyboard(current_page: int, total_pages: int) -> InlineKeyboardMarkup:
     """Клавиатура для действий с портфелем с пагинацией."""
