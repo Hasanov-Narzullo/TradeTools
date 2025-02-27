@@ -14,6 +14,8 @@ from loguru import logger
 from aiocache import cached
 from economic_calendar import Investing
 from database import add_event
+import finnhub
+
 
 _stock_price_cache: dict = {}
 _crypto_price_cache: dict = {}
@@ -231,6 +233,8 @@ MARKET_ASSETS = {
     }
 }
 
+finnhub_client = finnhub.Client(api_key="cutg85hr01qrsirmlv1gcutg85hr01qrsirmlv20")
+
 @cached(ttl=300)  # Кэшируем данные на 5 минут
 async def get_market_data() -> dict:
     """Получение данных о рынке (индексы, золото, нефть, газ, биткоин)."""
@@ -290,18 +294,83 @@ EVENT_TYPES = {
 
 @cached(ttl=3600)
 async def fetch_economic_calendar() -> list:
-    """Парсинг экономического календаря с Investing.com."""
-    investing = Investing()
-    return await investing.news()
+    """Получение экономического календаря через Finnhub API (IPO, экономические события, отчетности)."""
+    events = []
+    try:
+        # Получаем IPO календарь за последние 7 дней и следующие 7 дней
+        start_date = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
+        end_date = (datetime.now() + timedelta(days=7)).strftime("%Y-%m-%d")
+        ipo_calendar = finnhub_client.ipo_calendar(_from=start_date, to=end_date)
+
+        if ipo_calendar and "ipoCalendar" in ipo_calendar:
+            for event in ipo_calendar["ipoCalendar"]:
+                try:
+                    event_date = datetime.strptime(event["date"], "%Y-%m-%d").strftime("%Y-%m-%d %H:%M:%S")
+                    events.append({
+                        "event_date": event_date,
+                        "title": f"IPO: {event['name']}",
+                        "description": f"Биржа: {event['exchange']}, Количество акций: {event['numberOfShares']}, Цена: {event['price']}, Статус: {event['status']}, Символ: {event['symbol']}, Общая стоимость: {event['totalSharesValue']}",
+                        "source": "Finnhub",
+                        "type": "ipo",
+                        "symbol": event["symbol"]
+                    })
+                    logger.debug(f"Добавлено IPO событие: {event['name']}")
+                except Exception as e:
+                    logger.error(f"Ошибка при обработке IPO события: {e}")
+                    continue
+
+        # Получаем экономические события (например, ВВП, безработица)
+        economic_calendar = finnhub_client.economic_calendar(_from=start_date, to=end_date)
+        if economic_calendar and "economicCalendar" in economic_calendar:
+            for event in economic_calendar["economicCalendar"]:
+                try:
+                    event_date = datetime.strptime(event["date"], "%Y-%m-%d %H:%M:%S").strftime("%Y-%m-%d %H:%M:%S")
+                    events.append({
+                        "event_date": event_date,
+                        "title": event["event"],
+                        "description": f"Страна: {event['country']}, Влияние: {event['impact']}, Прогноз: {event.get('forecast', '')}, Предыдущее: {event.get('previous', '')}",
+                        "source": "Finnhub",
+                        "type": "macro",
+                        "symbol": None
+                    })
+                    logger.debug(f"Добавлено экономическое событие: {event['event']}")
+                except Exception as e:
+                    logger.error(f"Ошибка при обработке экономического события: {e}")
+                    continue
+
+        # Получаем отчетности (earnings)
+        earnings_calendar = finnhub_client.earnings_calendar(_from=start_date, to=end_date)
+        if earnings_calendar and "earningsCalendar" in earnings_calendar:
+            for event in earnings_calendar["earningsCalendar"]:
+                try:
+                    event_date = datetime.strptime(event["date"], "%Y-%m-%d").strftime("%Y-%m-%d %H:%M:%S")
+                    events.append({
+                        "event_date": event_date,
+                        "title": f"Отчетность для {event['symbol']}",
+                        "description": f"EPS прогноз: {event.get('epsEstimate', '')}, EPS фактический: {event.get('epsActual', '')}, Выручка прогноз: {event.get('revenueEstimate', '')}, Выручка фактическая: {event.get('revenueActual', '')}",
+                        "source": "Finnhub",
+                        "type": "earnings",
+                        "symbol": event["symbol"]
+                    })
+                    logger.debug(f"Добавлено событие отчетности для {event['symbol']}")
+                except Exception as e:
+                    logger.error(f"Ошибка при обработке события отчетности: {e}")
+                    continue
+
+    except Exception as e:
+        logger.error(f"Ошибка при получении экономического календаря с Finnhub: {e}")
+
+    logger.info(f"Получено {len(events)} событий с Finnhub")
+    return events
+
 
 @cached(ttl=3600)
 async def fetch_dividends_and_earnings(symbol: str) -> list:
-    """Получение дивидендов и отчетностей для актива через yfinance."""
+    """Получение дивидендов для актива через yfinance."""
     events = []
     try:
         ticker = Ticker(symbol)
         dividends = ticker.dividends
-        earnings_dates = ticker.earnings_dates
 
         # Дивиденды
         if dividends is not None and not dividends.empty:
@@ -316,25 +385,12 @@ async def fetch_dividends_and_earnings(symbol: str) -> list:
                     "symbol": symbol
                 })
                 logger.debug(f"Добавлено событие дивидендов для {symbol}")
-
-        # Отчетности
-        if earnings_dates is not None and not earnings_dates.empty:
-            for date, _ in earnings_dates.iterrows():
-                event_date = date.strftime("%Y-%m-%d %H:%M:%S")
-                events.append({
-                    "event_date": event_date,
-                    "title": f"Отчетность для {symbol}",
-                    "description": "Отчетность компании",
-                    "source": "Yahoo Finance",
-                    "type": "earnings",
-                    "symbol": symbol
-                })
-                logger.debug(f"Добавлено событие отчетности для {symbol}")
     except Exception as e:
-        logger.error(f"Ошибка при получении событий для {symbol}: {e}")
+        logger.error(f"Ошибка при получении дивидендов для {symbol}: {e}")
 
-    logger.info(f"Получено {len(events)} событий для актива {symbol}")
+    logger.info(f"Получено {len(events)} событий для актива {symbol} через yfinance")
     return events
+
 
 @cached(ttl=3600)
 async def fetch_test_events() -> list:

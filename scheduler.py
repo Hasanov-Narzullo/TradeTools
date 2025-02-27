@@ -1,14 +1,14 @@
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from loguru import logger
-
-from config import settings
-from database import get_alerts, remove_alert, add_event
 from api import get_stock_price, get_crypto_price, fetch_economic_calendar, fetch_dividends_and_earnings, \
     fetch_test_events
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from loguru import logger
+from config import settings
+from database import get_alerts, remove_alert, add_event
 from bot import bot
 import aiosqlite
 from datetime import datetime, timedelta
 from utils import format_price
+
 
 async def check_alerts():
     """Проверка алертов и отправка уведомлений."""
@@ -34,6 +34,7 @@ async def check_alerts():
             await remove_alert(alert_id)
             logger.info(f"Алерт {alert_id} сработал и удален.")
 
+
 async def update_quotes():
     """Обновление котировок (можно расширить для сохранения в базу)."""
     logger.info("Обновление котировок...")
@@ -49,10 +50,10 @@ async def update_calendar():
         symbols = [row[0] for row in await cursor.fetchall()]
         logger.info(f"Найдено {len(symbols)} уникальных символов в портфеле: {symbols}")
 
-    # Получаем общеэкономические события
-    economic_events = await fetch_economic_calendar()
-    logger.info(f"Получено {len(economic_events)} общеэкономических событий с Investing.com")
-    for event in economic_events:
+    # Получаем события через Finnhub (IPO, экономические события, отчетности)
+    finnhub_events = await fetch_economic_calendar()
+    logger.info(f"Получено {len(finnhub_events)} событий с Finnhub")
+    for event in finnhub_events:
         try:
             await add_event(
                 event_date=event["event_date"],
@@ -60,17 +61,17 @@ async def update_calendar():
                 description=event["description"],
                 source=event["source"],
                 event_type=event["type"],
-                symbol=None
+                symbol=event["symbol"]
             )
-            logger.debug(f"Добавлено общеэкономическое событие: {event['title']}")
+            logger.debug(f"Добавлено событие с Finnhub: {event['title']}")
         except Exception as e:
-            logger.error(f"Ошибка при добавлении общеэкономического события: {e}")
+            logger.error(f"Ошибка при добавлении события с Finnhub: {e}")
 
-    # Получаем события для активов из портфеля
+    # Получаем дивиденды для активов из портфеля через yfinance
     for symbol in symbols:
-        asset_events = await fetch_dividends_and_earnings(symbol)
-        logger.info(f"Получено {len(asset_events)} событий для актива {symbol}")
-        for event in asset_events:
+        yfinance_events = await fetch_dividends_and_earnings(symbol)
+        logger.info(f"Получено {len(yfinance_events)} событий для актива {symbol} через yfinance")
+        for event in yfinance_events:
             try:
                 await add_event(
                     event_date=event["event_date"],
