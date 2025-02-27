@@ -300,9 +300,11 @@ async def fetch_economic_calendar() -> list:
         # Получаем IPO календарь за последние 7 дней и следующие 7 дней
         start_date = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
         end_date = (datetime.now() + timedelta(days=7)).strftime("%Y-%m-%d")
+        logger.info(f"Запрос IPO календаря с {start_date} по {end_date}")
         ipo_calendar = finnhub_client.ipo_calendar(_from=start_date, to=end_date)
 
         if ipo_calendar and "ipoCalendar" in ipo_calendar:
+            logger.info(f"Получено {len(ipo_calendar['ipoCalendar'])} IPO событий")
             for event in ipo_calendar["ipoCalendar"]:
                 try:
                     event_date = datetime.strptime(event["date"], "%Y-%m-%d").strftime("%Y-%m-%d %H:%M:%S")
@@ -318,10 +320,14 @@ async def fetch_economic_calendar() -> list:
                 except Exception as e:
                     logger.error(f"Ошибка при обработке IPO события: {e}")
                     continue
+        else:
+            logger.warning("IPO календарь пуст или не содержит данных")
 
         # Получаем экономические события (например, ВВП, безработица)
+        logger.info(f"Запрос экономического календаря с {start_date} по {end_date}")
         economic_calendar = finnhub_client.economic_calendar(_from=start_date, to=end_date)
         if economic_calendar and "economicCalendar" in economic_calendar:
+            logger.info(f"Получено {len(economic_calendar['economicCalendar'])} экономических событий")
             for event in economic_calendar["economicCalendar"]:
                 try:
                     event_date = datetime.strptime(event["date"], "%Y-%m-%d %H:%M:%S").strftime("%Y-%m-%d %H:%M:%S")
@@ -337,10 +343,14 @@ async def fetch_economic_calendar() -> list:
                 except Exception as e:
                     logger.error(f"Ошибка при обработке экономического события: {e}")
                     continue
+        else:
+            logger.warning("Экономический календарь пуст или не содержит данных")
 
         # Получаем отчетности (earnings)
+        logger.info(f"Запрос календаря отчетностей с {start_date} по {end_date}")
         earnings_calendar = finnhub_client.earnings_calendar(_from=start_date, to=end_date)
         if earnings_calendar and "earningsCalendar" in earnings_calendar:
+            logger.info(f"Получено {len(earnings_calendar['earningsCalendar'])} событий отчетностей")
             for event in earnings_calendar["earningsCalendar"]:
                 try:
                     event_date = datetime.strptime(event["date"], "%Y-%m-%d").strftime("%Y-%m-%d %H:%M:%S")
@@ -356,6 +366,8 @@ async def fetch_economic_calendar() -> list:
                 except Exception as e:
                     logger.error(f"Ошибка при обработке события отчетности: {e}")
                     continue
+        else:
+            logger.warning("Календарь отчетностей пуст или не содержит данных")
 
     except Exception as e:
         logger.error(f"Ошибка при получении экономического календаря с Finnhub: {e}")
