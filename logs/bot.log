@@ -947,3 +947,30 @@
 2025-02-27 12:12:19.757 | INFO     | scheduler:update_quotes:38 - Обновление котировок...
 2025-02-27 12:12:22.747 | INFO     | api:get_crypto_price:128 - Цена криптовалюты BTC/USDT: 86128.94
 2025-02-27 12:12:23.055 | INFO     | api:get_crypto_price:120 - Использована кэшированная цена для криптовалюты BTC/USDT: 86128.94
+2025-02-27 12:13:44.429 | INFO     | __main__:<module>:49 - Запуск бота...
+2025-02-27 12:13:44.429 | INFO     | bot:setup_bot:20 - Инициализация бота...
+2025-02-27 12:13:44.429 | INFO     | bot:setup_bot:23 - Хэндлеры зарегистрированы.
+2025-02-27 12:13:44.430 | INFO     | scheduler:setup_scheduler:58 - Планировщик настроен.
+2025-02-27 12:13:44.432 | INFO     | database:init_db:159 - База данных инициализирована.
+2025-02-27 12:13:44.432 | INFO     | bot:on_startup:28 - Бот запущен.
+2025-02-27 12:14:03.440 | INFO     | handlers:handle_quotes:598 - Пользователь 413467341 запросил котировки.
+2025-02-27 12:14:10.516 | INFO     | handlers:handle_cancel:769 - Пользователь 413467341 отменил действие.
+2025-02-27 12:14:11.780 | INFO     | handlers:handle_quotes_menu:590 - Пользователь 413467341 открыл меню котировок.
+2025-02-27 12:14:15.784 | ERROR    | api:get_stock_price_finnhub:66 - Ошибка при получении цены для AAPL через Finnhub: 'Settings' object has no attribute 'FINNHUB_API_KEY'
+2025-02-27 12:14:15.785 | WARNING  | api:get_stock_price:107 - Цена для AAPL не найдена через Finnhub, переходим к следующему API
+2025-02-27 12:14:16.541 | INFO     | api:get_stock_price_yfinance:77 - Цена для AAPL получена через yfinance: 240.36000061035156
+2025-02-27 12:14:16.542 | INFO     | api:get_stock_price:105 - Цена для AAPL получена через yfinance: 240.36000061035156
+2025-02-27 12:14:19.493 | INFO     | api:get_crypto_price:128 - Цена криптовалюты BTC/USDT: 86088.75
+2025-02-27 12:14:20.049 | INFO     | handlers:handle_portfolio_prices:930 - Пользователь 413467341 запросил цены портфеля.
+2025-02-27 12:14:22.522 | INFO     | handlers:handle_quotes:598 - Пользователь 413467341 запросил котировки.
+2025-02-27 12:14:34.072 | INFO     | handlers:get_quote:119 - Пользователь 413467341 запросил цену TORN/USDT (main_menu).
+2025-02-27 12:14:39.371 | INFO     | handlers:handle_main_menu:896 - Пользователь 413467341 вернулся в главное меню.
+2025-02-27 12:14:41.341 | INFO     | handlers:handle_alerts_menu:843 - Пользователь 413467341 открыл меню алертов.
+2025-02-27 12:14:42.649 | INFO     | handlers:handle_current_alerts:864 - Пользователь 413467341 запросил текущие алерты.
+2025-02-27 12:18:44.442 | INFO     | scheduler:check_alerts:14 - Проверка алертов...
+2025-02-27 12:18:47.134 | INFO     | api:get_crypto_price:128 - Цена криптовалюты BTC/USDT: 85948.01
+2025-02-27 12:18:47.434 | INFO     | api:get_crypto_price:120 - Использована кэшированная цена для криптовалюты BTC/USDT: 85948.01
+2025-02-27 12:23:44.431 | INFO     | scheduler:check_alerts:14 - Проверка алертов...
+2025-02-27 12:23:44.432 | INFO     | scheduler:update_quotes:38 - Обновление котировок...
+2025-02-27 12:23:47.497 | INFO     | api:get_crypto_price:128 - Цена криптовалюты BTC/USDT: 85979.95
+2025-02-27 12:23:47.780 | INFO     | api:get_crypto_price:120 - Использована кэшированная цена для криптовалюты BTC/USDT: 85979.95

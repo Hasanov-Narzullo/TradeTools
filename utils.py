@@ -2,15 +2,28 @@ from datetime import datetime
 from html import escape
 from loguru import logger
 
-def format_portfolio(portfolio):
+def format_portfolio(portfolio, page: int = 1, items_per_page: int = 4) -> tuple[str, int]:
     """
-    Форматирует портфель для отображения пользователю с инлайн-кнопками для действий.
+    Форматирует портфель для отображения на указанной странице.
+    Возвращает отформатированный текст и общее количество страниц.
     """
     if not portfolio:
-        return "Портфель пуст."
+        return "Портфель пуст.", 0
 
-    result = "📊 Ваш портфель:\n\n"
-    for asset in portfolio:
+    # Вычисляем общее количество страниц
+    total_pages = (len(portfolio) + items_per_page - 1) // items_per_page
+    if page < 1:
+        page = 1
+    if page > total_pages:
+        page = total_pages
+
+    # Определяем диапазон элементов для текущей страницы
+    start_idx = (page - 1) * items_per_page
+    end_idx = start_idx + items_per_page
+    page_items = portfolio[start_idx:end_idx]
+
+    result = f"📊 Ваш портфель (страница {page}/{total_pages}):\n\n"
+    for asset in page_items:
         try:
             symbol = asset['symbol']
             asset_type = "Акция" if asset['asset_type'] == "stock" else "Криптовалюта"
@@ -49,15 +62,30 @@ def format_portfolio(portfolio):
             result += f"Ошибка при обработке актива {asset.get('symbol', 'Неизвестный')}\n"
             result += "-" * 20 + "\n"
 
-    return result
+    return result, total_pages
 
-def format_alerts(alerts: list) -> str:
-    """Форматирование списка алертов для вывода с инлайн-кнопками."""
+def format_alerts(alerts: list, page: int = 1, items_per_page: int = 4) -> tuple[str, int]:
+    """
+    Форматирует список алертов для вывода на указанной странице.
+    Возвращает отформатированный текст и общее количество страниц.
+    """
     if not alerts:
-        return "Алерты не установлены."
+        return "Алерты не установлены.", 0
 
-    result = "🔔 Ваши алерты:\n\n"
-    for alert in alerts:
+    # Вычисляем общее количество страниц
+    total_pages = (len(alerts) + items_per_page - 1) // items_per_page
+    if page < 1:
+        page = 1
+    if page > total_pages:
+        page = total_pages
+
+    # Определяем диапазон элементов для текущей страницы
+    start_idx = (page - 1) * items_per_page
+    end_idx = start_idx + items_per_page
+    page_items = alerts[start_idx:end_idx]
+
+    result = f"🔔 Ваши алерты (страница {page}/{total_pages}):\n\n"
+    for alert in page_items:
         alert_id, user_id, asset_type, symbol, target_price, condition, created_at = alert
         asset_type_display = "Акция" if asset_type == "stock" else "Криптовалюта"
         condition_display = "выше" if condition == "above" else "ниже"
@@ -69,7 +97,8 @@ def format_alerts(alerts: list) -> str:
             f"Дата создания: {str(created_at)}\n"
             f"{'-' * 30}\n"
         )
-    return result
+
+    return result, total_pages
 
 def format_events(events: list) -> str:
     """Форматирование списка событий для вывода."""

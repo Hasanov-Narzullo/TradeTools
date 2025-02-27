@@ -598,7 +598,7 @@ async def handle_quotes(callback: CallbackQuery, state: FSMContext):
     logger.info(f"Пользователь {callback.from_user.id} запросил котировки.")
 
 @router.callback_query(F.data == "portfolio")
-async def handle_portfolio(callback: CallbackQuery):
+async def handle_portfolio(callback: CallbackQuery, state: FSMContext):
     """Обработчик кнопки 'Портфель'."""
     portfolio = await get_portfolio(callback.from_user.id)
     if not portfolio:
@@ -630,13 +630,13 @@ async def handle_portfolio(callback: CallbackQuery):
             logger.error(f"Некорректная структура данных актива: {asset}. Отсутствует ключ: {e}")
             continue
 
-    formatted_portfolio = format_portfolio(portfolio_with_prices)
+    formatted_portfolio, total_pages = format_portfolio(portfolio_with_prices, page=1)
     await callback.message.answer(
         formatted_portfolio,
-        reply_markup=portfolio_actions_keyboard()
+        reply_markup=portfolio_actions_keyboard(current_page=1, total_pages=total_pages)
     )
     await callback.answer()
-    logger.info(f"Пользователь {callback.from_user.id} запросил портфель.")
+    logger.info(f"Пользователь {callback.from_user.id} запросил портфель (страница 1).")
 
 @router.callback_query(F.data == "add_to_portfolio")
 async def handle_add_to_portfolio(callback: CallbackQuery, state: FSMContext):
@@ -843,7 +843,7 @@ async def handle_alerts_menu(callback: CallbackQuery):
     logger.info(f"Пользователь {callback.from_user.id} открыл меню алертов.")
 
 @router.callback_query(F.data == "current_alerts")
-async def handle_current_alerts(callback: CallbackQuery):
+async def handle_current_alerts(callback: CallbackQuery, state: FSMContext):
     """Обработчик кнопки 'Текущие алерты'."""
     alerts = await get_alerts(callback.from_user.id)
     if not alerts:
@@ -855,13 +855,13 @@ async def handle_current_alerts(callback: CallbackQuery):
         logger.info(f"Пользователь {callback.from_user.id} запросил текущие алерты (пусто).")
         return
 
-    formatted_alerts = format_alerts(alerts)
+    formatted_alerts, total_pages = format_alerts(alerts, page=1)
     await callback.message.answer(
         formatted_alerts,
-        reply_markup=alerts_menu_keyboard()
+        reply_markup=alerts_menu_keyboard(current_page=1, total_pages=total_pages)
     )
     await callback.answer()
-    logger.info(f"Пользователь {callback.from_user.id} запросил текущие алерты.")
+    logger.info(f"Пользователь {callback.from_user.id} запросил текущие алерты (страница 1).")
 
 @router.message(AlertState.removing_alert)
 async def handle_remove_alert_id(message: Message, state: FSMContext):
@@ -928,3 +928,67 @@ async def handle_portfolio_prices(callback: CallbackQuery):
     await callback.message.answer(formatted_market, reply_markup=quotes_menu_keyboard())
     await callback.answer()
     logger.info(f"Пользователь {callback.from_user.id} запросил цены портфеля.")
+
+@router.callback_query(F.data.startswith("portfolio_page_"))
+async def handle_portfolio_page(callback: CallbackQuery, state: FSMContext):
+    """Обработчик навигации по страницам портфеля."""
+    page = int(callback.data.replace("portfolio_page_", ""))
+    portfolio = await get_portfolio(callback.from_user.id)
+    if not portfolio:
+        await callback.message.answer(
+            "Ваш портфель сейчас пуст. 😔\n"
+            "Используйте кнопку 'Добавить актив', чтобы добавить активы в портфель.",
+            reply_markup=main_menu()
+        )
+        logger.info(f"Пользователь {callback.from_user.id} запросил портфель (пустой).")
+        return
+
+    portfolio_with_prices = []
+    for asset in portfolio:
+        try:
+            symbol = asset['symbol']
+            asset_type = asset['asset_type']
+            amount = asset['amount']
+            purchase_price = asset['purchase_price']
+            current_price = await fetch_asset_price(symbol, asset_type)
+            asset_data = {
+                'symbol': symbol,
+                'asset_type': asset_type,
+                'amount': amount,
+                'purchase_price': purchase_price,
+                'current_price': current_price
+            }
+            portfolio_with_prices.append(asset_data)
+        except KeyError as e:
+            logger.error(f"Некорректная структура данных актива: {asset}. Отсутствует ключ: {e}")
+            continue
+
+    formatted_portfolio, total_pages = format_portfolio(portfolio_with_prices, page=page)
+    await callback.message.edit_text(
+        formatted_portfolio,
+        reply_markup=portfolio_actions_keyboard(current_page=page, total_pages=total_pages)
+    )
+    await callback.answer()
+    logger.info(f"Пользователь {callback.from_user.id} перешел на страницу портфеля {page}.")
+
+@router.callback_query(F.data.startswith("alerts_page_"))
+async def handle_alerts_page(callback: CallbackQuery, state: FSMContext):
+    """Обработчик навигации по страницам алертов."""
+    page = int(callback.data.replace("alerts_page_", ""))
+    alerts = await get_alerts(callback.from_user.id)
+    if not alerts:
+        await callback.message.answer(
+            "У вас нет установленных алертов. 😔\n"
+            "Используйте кнопку 'Добавить алерт', чтобы добавить алерт.",
+            reply_markup=alerts_menu_keyboard()
+        )
+        logger.info(f"Пользователь {callback.from_user.id} запросил текущие алерты (пусто).")
+        return
+
+    formatted_alerts, total_pages = format_alerts(alerts, page=page)
+    await callback.message.edit_text(
+        formatted_alerts,
+        reply_markup=alerts_menu_keyboard(current_page=page, total_pages=total_pages)
+    )
+    await callback.answer()
+    logger.info(f"Пользователь {callback.from_user.id} перешел на страницу алертов {page}.")

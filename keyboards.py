@@ -58,14 +58,9 @@ def cancel_keyboard() -> ReplyKeyboardMarkup:
         resize_keyboard=True,
         one_time_keyboard=True)
 
-def portfolio_actions_keyboard() -> InlineKeyboardMarkup:
-    """Клавиатура для действий с портфелем."""
-    return InlineKeyboardMarkup(inline_keyboard=[
-        [
-            InlineKeyboardButton(text="🗑 Удалить актив", callback_data="remove_asset"),
-            InlineKeyboardButton(text="🔙 Назад", callback_data="portfolio")
-        ]
-    ])
+def portfolio_actions_keyboard(current_page: int, total_pages: int) -> InlineKeyboardMarkup:
+    """Клавиатура для действий с портфелем с пагинацией."""
+    return pagination_keyboard(current_page, total_pages, "portfolio")
 
 def alert_actions_keyboard(alert_id: int) -> InlineKeyboardMarkup:
     """Клавиатура для действий с алертом."""
@@ -94,9 +89,9 @@ def confirm_remove_asset_keyboard(symbol: str) -> InlineKeyboardMarkup:
         ]
     ])
 
-def alerts_menu_keyboard() -> InlineKeyboardMarkup:
-    """Клавиатура для меню алертов."""
-    return InlineKeyboardMarkup(inline_keyboard=[
+def alerts_menu_keyboard(current_page: int = 1, total_pages: int = 1) -> InlineKeyboardMarkup:
+    """Клавиатура для меню алертов с пагинацией."""
+    buttons = [
         [
             InlineKeyboardButton(text="📋 Текущие алерты", callback_data="current_alerts"),
             InlineKeyboardButton(text="➕ Добавить алерт", callback_data="set_alert")
@@ -105,16 +100,30 @@ def alerts_menu_keyboard() -> InlineKeyboardMarkup:
             InlineKeyboardButton(text="🗑 Удалить алерт", callback_data="remove_alert"),
             InlineKeyboardButton(text="🔙 Назад", callback_data="main_menu")
         ]
-    ])
+    ]
+    if total_pages > 1:
+        pagination_row = []
+        if current_page > 1:
+            pagination_row.append(InlineKeyboardButton(text="⬅️ Предыдущая", callback_data=f"alerts_page_{current_page - 1}"))
+        if current_page < total_pages:
+            pagination_row.append(InlineKeyboardButton(text="Следующая ➡️", callback_data=f"alerts_page_{current_page + 1}"))
+        buttons.append(pagination_row)
 
-def quotes_menu_keyboard() -> InlineKeyboardMarkup:
-    """Клавиатура для меню котировок."""
-    return InlineKeyboardMarkup(inline_keyboard=[
-        [
-            InlineKeyboardButton(text="🔍 Запросить котировку", callback_data="quotes"),
-            InlineKeyboardButton(text="💼 Цены портфеля", callback_data="portfolio_prices")
-        ],
-        [
-            InlineKeyboardButton(text="🔙 Назад", callback_data="main_menu")
-        ]
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+def pagination_keyboard(current_page: int, total_pages: int, prefix: str) -> InlineKeyboardMarkup:
+    """
+    Клавиатура для навигации по страницам.
+    prefix: 'portfolio' или 'alerts' для определения типа данных.
+    """
+    buttons = []
+    if current_page > 1:
+        buttons.append(InlineKeyboardButton(text="⬅️ Предыдущая", callback_data=f"{prefix}_page_{current_page - 1}"))
+    if current_page < total_pages:
+        buttons.append(InlineKeyboardButton(text="Следующая ➡️", callback_data=f"{prefix}_page_{current_page + 1}"))
+
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        buttons,
+        [InlineKeyboardButton(text="🔙 Назад", callback_data="main_menu" if prefix == "portfolio" else "alerts_menu")]
     ])
+    return keyboard
