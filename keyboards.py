@@ -2,7 +2,7 @@ from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMar
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 def main_menu() -> InlineKeyboardMarkup:
-    """Создание главного меню с инлайн-кнопками."""
+    """Обновленное главное меню с разделом алертов."""
     return InlineKeyboardMarkup(inline_keyboard=[
         [
             InlineKeyboardButton(text="📈 Котировки", callback_data="quotes"),
@@ -10,7 +10,7 @@ def main_menu() -> InlineKeyboardMarkup:
         ],
         [
             InlineKeyboardButton(text="➕ Добавить актив", callback_data="add_to_portfolio"),
-            InlineKeyboardButton(text="🔔 Установить алерт", callback_data="set_alert")
+            InlineKeyboardButton(text="🔔 Алерты", callback_data="alerts_menu")
         ],
         [
             InlineKeyboardButton(text="📅 Календарь", callback_data="calendar"),
@@ -79,5 +79,30 @@ def confirm_remove_asset_keyboard(symbol: str) -> InlineKeyboardMarkup:
         [
             InlineKeyboardButton(text="✅ Подтвердить", callback_data=f"confirm_remove_{symbol}"),
             InlineKeyboardButton(text="🚫 Отмена", callback_data="cancel")
+        ]
+    ])
+
+def alerts_menu_keyboard() -> InlineKeyboardMarkup:
+    """Клавиатура для меню алертов."""
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text="📋 Текущие алерты", callback_data="current_alerts"),
+            InlineKeyboardButton(text="➕ Добавить алерт", callback_data="set_alert")
+        ],
+        [
+            InlineKeyboardButton(text="🗑 Удалить алерт", callback_data="remove_alert"),
+            InlineKeyboardButton(text="🔙 Назад", callback_data="main_menu")
+        ]
+    ])
+
+def quotes_menu_keyboard() -> InlineKeyboardMarkup:
+    """Клавиатура для меню котировок."""
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text="🔍 Запросить котировку", callback_data="quotes"),
+            InlineKeyboardButton(text="💼 Цены портфеля", callback_data="portfolio_prices")
+        ],
+        [
+            InlineKeyboardButton(text="🔙 Назад", callback_data="main_menu")
         ]
     ])

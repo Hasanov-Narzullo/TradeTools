@@ -203,3 +203,76 @@ async def get_exchange_rate(from_currency: str = "USD", to_currency: str = "RUB"
     except Exception as e:
         logger.error(f"Ошибка при получении курса для {from_currency}/{to_currency}: {e}")
         return 90.0  # Фиксированный курс в случае ошибки
+
+MARKET_ASSETS = {
+    "indices": {
+        "S&P 500": "^GSPC",
+        "Dow Jones": "^DJI",
+        "NASDAQ": "^IXIC",
+        "FTSE 100": "^FTSE",
+        "DAX": "^GDA",
+        "CAC 40": "^FCHI",
+        "Nikkei 225": "^N225",
+        "Hang Seng": "^HSI",
+        "Shanghai Composite": "000001.SS",
+        "RTS": "^RTS"
+    },
+    "commodities": {
+        "Gold": "GC=F",
+        "Oil (Brent)": "BZ=F",
+        "Natural Gas": "NG=F"
+    },
+    "crypto": {
+        "Bitcoin": "BTC/USDT"
+    }
+}
+
+@cached(ttl=300)  # Кэшируем данные на 5 минут
+async def get_market_data() -> dict:
+    """Получение данных о рынке (индексы, золото, нефть, газ, биткоин)."""
+    market_data = {
+        "indices": {},
+        "commodities": {},
+        "crypto": {}
+    }
+
+    # Получение данных для индексов и сырьевых товаров через yfinance
+    for category, assets in [("indices", MARKET_ASSETS["indices"]), ("commodities", MARKET_ASSETS["commodities"])]:
+        for name, symbol in assets.items():
+            try:
+                ticker = yf.Ticker(symbol)
+                history = ticker.history(period="2d")
+                if len(history) >= 2:
+                    current_price = history['Close'].iloc[-1]
+                    previous_price = history['Close'].iloc[-2]
+                    change_percent = ((current_price - previous_price) / previous_price) * 100
+                    market_data[category][name] = {
+                        "price": current_price,
+                        "change_percent": change_percent
+                    }
+                else:
+                    logger.warning(f"Недостаточно данных для {name} ({symbol})")
+                    market_data[category][name] = {"price": None, "change_percent": None}
+            except Exception as e:
+                logger.error(f"Ошибка при получении данных для {name} ({symbol}): {e}")
+                market_data[category][name] = {"price": None, "change_percent": None}
+
+    # Получение данных для криптовалют через ccxt
+    for name, symbol in MARKET_ASSETS["crypto"].items():
+        try:
+            exchange = ccxt.binance()
+            ticker = await exchange.fetch_ticker(symbol)
+            current_price = ticker['last']
+            previous_price = ticker['open']  # Примерно за 24 часа
+            change_percent = ((current_price - previous_price) / previous_price) * 100
+            market_data["crypto"][name] = {
+                "price": current_price,
+                "change_percent": change_percent
+            }
+        except Exception as e:
+            logger.error(f"Ошибка при получении данных для {name} ({symbol}): {e}")
+            market_data["crypto"][name] = {"price": None, "change_percent": None}
+        finally:
+            await exchange.close()
+
+    return market_data

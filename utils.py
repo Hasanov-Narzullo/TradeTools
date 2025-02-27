@@ -146,3 +146,44 @@ def escape_markdown_v2(text: str) -> str:
     for char in reserved_chars:
         text = text.replace(char, f'\\{char}')
     return text
+
+def format_market_overview(market_data: dict) -> str:
+    """Форматирование обзора рынка."""
+    result = "🌍 Обзор рынка:\n\n"
+
+    # Индексы
+    result += "📊 *Индексы:*\n"
+    for name, data in market_data["indices"].items():
+        price = data["price"]
+        change_percent = data["change_percent"]
+        if price is not None and change_percent is not None:
+            change_emoji = "📈" if change_percent >= 0 else "📉"
+            result += f"{name}: ${price:.2f} {change_emoji} {change_percent:+.2f}%\n"
+        else:
+            result += f"{name}: Данные недоступны\n"
+    result += "-" * 20 + "\n"
+
+    # Сырьевые товары
+    result += "🛢 *Сырьевые товары:*\n"
+    for name, data in market_data["commodities"].items():
+        price = data["price"]
+        change_percent = data["change_percent"]
+        if price is not None and change_percent is not None:
+            change_emoji = "📈" if change_percent >= 0 else "📉"
+            result += f"{name}: ${price:.2f} {change_emoji} {change_percent:+.2f}%\n"
+        else:
+            result += f"{name}: Данные недоступны\n"
+    result += "-" * 20 + "\n"
+
+    # Криптовалюты
+    result += "💰 *Криптовалюты:*\n"
+    for name, data in market_data["crypto"].items():
+        price = data["price"]
+        change_percent = data["change_percent"]
+        if price is not None and change_percent is not None:
+            change_emoji = "📈" if change_percent >= 0 else "📉"
+            result += f"{name}: ${price:.2f} {change_emoji} {change_percent:+.2f}%\n"
+        else:
+            result += f"{name}: Данные недоступны\n"
+
+    return result

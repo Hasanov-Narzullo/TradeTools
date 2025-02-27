@@ -4,12 +4,14 @@ from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKe
 from aiogram.fsm.context import FSMContext
 from loguru import logger
 from keyboards import main_menu, asset_type_keyboard, alert_condition_keyboard, alert_actions_keyboard, \
-    portfolio_actions_keyboard, confirm_alert_keyboard, confirm_remove_asset_keyboard
+    portfolio_actions_keyboard, confirm_alert_keyboard, confirm_remove_asset_keyboard, alerts_menu_keyboard, \
+    quotes_menu_keyboard
 from states import PortfolioState, AlertState
 from database import add_to_portfolio, get_portfolio, remove_from_portfolio, add_alert, get_alerts, remove_alert, \
     get_events
-from api import get_stock_price, get_crypto_price, fetch_asset_price, get_stock_history, get_crypto_history, get_stock_price_with_retry
-from utils import format_portfolio, format_alerts, format_events, format_market_prices
+from api import get_stock_price, get_crypto_price, fetch_asset_price, get_stock_history, get_crypto_history, \
+    get_stock_price_with_retry, get_market_data
+from utils import format_portfolio, format_alerts, format_events, format_market_prices, format_market_overview
 
 router = Router()
 
@@ -581,12 +583,11 @@ async def remove_alert_handler(message: Message, state: FSMContext):
         await state.clear()
 
 @router.callback_query(F.data == "quotes")
-async def handle_quotes(callback: CallbackQuery, state: FSMContext):
-    """Обработчик кнопки 'Котировки'."""
-    await callback.message.answer("Выберите тип актива:", reply_markup=asset_type_keyboard())
-    await state.set_state(PortfolioState.selecting_asset_type)
+async def handle_quotes_menu(callback: CallbackQuery, state: FSMContext):
+    """Обработчик кнопки 'Котировки' в главном меню."""
+    await callback.message.answer("Выберите действие с котировками:", reply_markup=quotes_menu_keyboard())
     await callback.answer()
-    logger.info(f"Пользователь {callback.from_user.id} запросил котировки.")
+    logger.info(f"Пользователь {callback.from_user.id} открыл меню котировок.")
 
 @router.callback_query(F.data == "portfolio")
 async def handle_portfolio(callback: CallbackQuery):
@@ -678,37 +679,13 @@ async def handle_help(callback: CallbackQuery):
     logger.info(f"Пользователь {callback.from_user.id} запросил помощь.")
 
 @router.callback_query(F.data == "market")
-async def handle_market(callback: CallbackQuery):
-    """Обработчик кнопки 'Рынок'."""
-    portfolio = await get_portfolio(callback.from_user.id)
-    if not portfolio:
-        await callback.message.answer(
-            "Ваш портфель сейчас пуст. 😔\n"
-            "Используйте кнопку 'Добавить актив', чтобы добавить активы в портфель.",
-            reply_markup=main_menu()
-        )
-        logger.info(f"Пользователь {callback.from_user.id} запросил рынок (пустой портфель).")
-        return
-    portfolio_with_prices = []
-    for asset in portfolio:
-        try:
-            symbol = asset['symbol']
-            asset_type = asset['asset_type']
-            current_price = await fetch_asset_price(symbol, asset_type)
-            asset_data = {
-                'symbol': symbol,
-                'asset_type': asset_type,
-                'current_price': current_price
-            }
-            portfolio_with_prices.append(asset_data)
-        except KeyError as e:
-            logger.error(f"Некорректная структура данных актива: {asset}. Отсутствует ключ: {e}")
-            continue
-
-    formatted_market = format_market_prices(portfolio_with_prices)
+async def handle_market_overview(callback: CallbackQuery):
+    """Обработчик кнопки 'Рынок' для показа обзора рынка."""
+    market_data = await get_market_data()
+    formatted_market = format_market_overview(market_data)
     await callback.message.answer(formatted_market, reply_markup=main_menu())
     await callback.answer()
-    logger.info(f"Пользователь {callback.from_user.id} запросил текущие рыночные цены.")
+    logger.info(f"Пользователь {callback.from_user.id} запросил обзор рынка.")
 
 @router.callback_query(F.data == "remove_asset")
 async def handle_remove_asset_prompt(callback: CallbackQuery, state: FSMContext):
@@ -741,15 +718,13 @@ async def handle_alerts(callback: CallbackQuery):
     await callback.answer()
     logger.info(f"Пользователь {callback.from_user.id} запросил алерты.")
 
-@router.callback_query(F.data.startswith("remove_alert_"))
-async def handle_remove_alert(callback: CallbackQuery, state: FSMContext):
-    """Обработчик удаления алерта."""
-    alert_id = int(callback.data.replace("remove_alert_", ""))
-    user_id = callback.from_user.id
-    await remove_alert(alert_id)
-    await callback.message.answer(f"Алерт ID {alert_id} удален.", reply_markup=main_menu())
+@router.callback_query(F.data == "remove_alert")
+async def handle_remove_alert_prompt(callback: CallbackQuery, state: FSMContext):
+    """Обработчик кнопки 'Удалить алерт'."""
+    await callback.message.answer("Введите ID алерта, который хотите удалить:")
+    await state.set_state(AlertState.removing_alert)
     await callback.answer()
-    logger.info(f"Пользователь {user_id} удалил алерт ID {alert_id}.")
+    logger.info(f"Пользователь {callback.from_user.id} начал удаление алерта.")
 
 @router.callback_query(F.data == "confirm_alert")
 async def confirm_alert(callback: CallbackQuery, state: FSMContext):
@@ -838,7 +813,7 @@ async def handle_menu_command(callback: CallbackQuery, state: FSMContext):
 
     command = callback.data
     if command == "quotes":
-        await handle_quotes(callback, state)
+        await handle_quotes_menu(callback, state)
     elif command == "portfolio":
         await handle_portfolio(callback)
     elif command == "add_to_portfolio":
@@ -851,3 +826,99 @@ async def handle_menu_command(callback: CallbackQuery, state: FSMContext):
         await handle_help(callback)
     elif command == "market":
         await handle_market(callback)
+
+@router.callback_query(F.data == "alerts_menu")
+async def handle_alerts_menu(callback: CallbackQuery):
+    """Обработчик кнопки 'Алерты' в главном меню."""
+    await callback.message.answer("Выберите действие с алертами:", reply_markup=alerts_menu_keyboard())
+    await callback.answer()
+    logger.info(f"Пользователь {callback.from_user.id} открыл меню алертов.")
+
+@router.callback_query(F.data == "current_alerts")
+async def handle_current_alerts(callback: CallbackQuery):
+    """Обработчик кнопки 'Текущие алерты'."""
+    alerts = await get_alerts(callback.from_user.id)
+    if not alerts:
+        await callback.message.answer(
+            "У вас нет установленных алертов. 😔\n"
+            "Используйте кнопку 'Добавить алерт', чтобы добавить алерт.",
+            reply_markup=alerts_menu_keyboard()
+        )
+        logger.info(f"Пользователь {callback.from_user.id} запросил текущие алерты (пусто).")
+        return
+
+    formatted_alerts = format_alerts(alerts)
+    for alert in alerts:
+        alert_id = alert[0]
+        await callback.message.answer(
+            formatted_alerts,
+            reply_markup=alert_actions_keyboard(alert_id)
+        )
+    await callback.answer()
+    logger.info(f"Пользователь {callback.from_user.id} запросил текущие алерты.")
+
+@router.message(AlertState.removing_alert)
+async def handle_remove_alert_id(message: Message, state: FSMContext):
+    """Обработчик ввода ID алерта для удаления."""
+    user_id = message.from_user.id
+    try:
+        alert_id = int(message.text)
+        alerts = await get_alerts(user_id)
+        if not any(alert[0] == alert_id for alert in alerts):
+            await message.answer(
+                f"Алерт ID {alert_id} не найден.",
+                reply_markup=alerts_menu_keyboard()
+            )
+            await state.clear()
+            logger.warning(f"Алерт ID {alert_id} не найден для пользователя {user_id}")
+            return
+
+        await remove_alert(alert_id)
+        await message.answer(f"Алерт ID {alert_id} удален.", reply_markup=alerts_menu_keyboard())
+        await state.clear()
+        logger.info(f"Пользователь {user_id} удалил алерт ID {alert_id}")
+    except ValueError:
+        await message.answer("Пожалуйста, введите числовой ID алерта.", reply_markup=alerts_menu_keyboard())
+        logger.warning(f"Пользователь {user_id} ввел некорректный ID алерта: {message.text}")
+
+@router.callback_query(F.data == "main_menu")
+async def handle_main_menu(callback: CallbackQuery, state: FSMContext):
+    """Обработчик кнопки 'Назад' в меню алертов."""
+    await state.clear()
+    await callback.message.answer("Главное меню:", reply_markup=main_menu())
+    await callback.answer()
+    logger.info(f"Пользователь {callback.from_user.id} вернулся в главное меню.")
+
+@router.callback_query(F.data == "portfolio_prices")
+async def handle_portfolio_prices(callback: CallbackQuery):
+    """Обработчик кнопки 'Цены портфеля'."""
+    portfolio = await get_portfolio(callback.from_user.id)
+    if not portfolio:
+        await callback.message.answer(
+            "Ваш портфель сейчас пуст. 😔\n"
+            "Используйте кнопку 'Добавить актив', чтобы добавить активы в портфель.",
+            reply_markup=quotes_menu_keyboard()
+        )
+        logger.info(f"Пользователь {callback.from_user.id} запросил цены портфеля (пустой).")
+        return
+
+    portfolio_with_prices = []
+    for asset in portfolio:
+        try:
+            symbol = asset['symbol']
+            asset_type = asset['asset_type']
+            current_price = await fetch_asset_price(symbol, asset_type)
+            asset_data = {
+                'symbol': symbol,
+                'asset_type': asset_type,
+                'current_price': current_price
+            }
+            portfolio_with_prices.append(asset_data)
+        except KeyError as e:
+            logger.error(f"Некорректная структура данных актива: {asset}. Отсутствует ключ: {e}")
+            continue
+
+    formatted_market = format_market_prices(portfolio_with_prices)
+    await callback.message.answer(formatted_market, reply_markup=quotes_menu_keyboard())
+    await callback.answer()
+    logger.info(f"Пользователь {callback.from_user.id} запросил цены портфеля.")
