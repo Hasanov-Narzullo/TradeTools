@@ -15,3 +15,6 @@ class AlertState(StatesGroup):
     selecting_price = State()
     selecting_condition = State()
     removing_alert = State()
+
+class CalendarStates(StatesGroup):
+    viewing_calendar = State()

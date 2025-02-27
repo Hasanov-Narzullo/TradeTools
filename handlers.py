@@ -1,17 +1,23 @@
 from aiogram import Router, F
-from aiogram.filters import Command
 from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
-from aiogram.fsm.context import FSMContext
-from loguru import logger
 from keyboards import main_menu, asset_type_keyboard, alert_condition_keyboard, alert_actions_keyboard, \
     portfolio_actions_keyboard, confirm_alert_keyboard, confirm_remove_asset_keyboard, alerts_menu_keyboard, \
-    quotes_menu_keyboard, calendar_menu_keyboard, pagination_keyboard
-from states import PortfolioState, AlertState
+    quotes_menu_keyboard, calendar_menu_keyboard, pagination_keyboard, get_category_keyboard, get_pagination_keyboard
+from states import PortfolioState, AlertState, CalendarStates
 from database import add_to_portfolio, get_portfolio, remove_from_portfolio, add_alert, get_alerts, remove_alert, \
-    get_events
+    get_events, load_sample_events
 from api import get_stock_price, get_crypto_price, fetch_asset_price, get_stock_history, get_crypto_history, \
     get_stock_price_with_retry, get_market_data
 from utils import format_portfolio, format_alerts, format_events, format_market_prices, format_market_overview
+from aiogram import Router, types
+from aiogram.filters import Command
+from aiogram.fsm.context import FSMContext
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from database import get_events, load_sample_events
+from utils import format_events, EVENT_TYPES
+from loguru import logger
+
+
 
 router = Router()
 
@@ -1072,3 +1078,118 @@ async def handle_calendar_page(callback: CallbackQuery, state: FSMContext):
     )
     await callback.answer()
     logger.info(f"Пользователь {user_id} перешел на страницу календаря {page} (фильтр: {filter_type}).")
+
+@router.message(Command("load_sample_events"))
+async def load_sample_events_handler(message: types.Message):
+    """Загружает пример событий в базу данных."""
+    try:
+        await load_sample_events()
+        await message.answer("Пример событий успешно загружен. Используйте /calendar для просмотра.")
+    except Exception as e:
+        logger.error(f"Ошибка при загрузке примеров событий: {e}")
+        await message.answer("Произошла ошибка при загрузке примеров событий.")
+
+
+@router.message(Command("calendar"))
+async def show_calendar(message: types.Message, state: FSMContext):
+    """Показывает выбор категории событий."""
+    try:
+        keyboard = get_category_keyboard()
+        await message.answer("Выберите категорию событий:", reply_markup=keyboard)
+        await state.set_state(CalendarStates.viewing_calendar)
+    except Exception as e:
+        logger.error(f"Ошибка при отображении календаря: {e}")
+        await message.answer("Произошла ошибка при отображении календаря.")
+
+
+@router.callback_query(lambda c: c.data.startswith("calendar_category_"))
+async def handle_category_selection(callback: types.CallbackQuery, state: FSMContext):
+    """Обработчик выбора категории."""
+    try:
+        category = callback.data.split("_")[-1]  # crypto, investments, all
+        await state.update_data(category=category, current_page=1)
+
+        user_id = callback.from_user.id
+        all_events = await get_events(user_id=user_id)
+
+        # Фильтруем события по категории
+        crypto_symbols = {"BTC", "ETH", "BNB", "XRP", "ADA", "SOL", "DOGE", "DOT", "LTC", "LINK"}
+        investment_symbols = {"AAPL", "MSFT", "AMZN", "GOOGL", "TSLA", "NVDA", "JPM", "GS", "V", "MA"}
+
+        if category == "crypto":
+            filtered_events = [e for e in all_events if
+                               e[6] in crypto_symbols or (e[6] is None and e[5] in ["macro", "press"])]
+        elif category == "investments":
+            filtered_events = [e for e in all_events if
+                               e[6] in investment_symbols or (e[6] is None and e[5] in ["macro", "earnings"])]
+        else:
+            filtered_events = all_events
+
+        if not filtered_events:
+            await callback.message.edit_text("Событий в выбранной категории нет.")
+            return
+
+        text, total_pages = format_events(filtered_events, page=1)
+        keyboard = get_pagination_keyboard(1, total_pages, category)
+
+        await callback.message.edit_text(
+            f"📅 Календарь событий ({'Криптовалюты' if category == 'crypto' else 'Инвестиции' if category == 'investments' else 'Все'}):\n\n{text}",
+            reply_markup=keyboard
+        )
+        await state.update_data(total_pages=total_pages)
+        await callback.answer()
+    except Exception as e:
+        logger.error(f"Ошибка при обработке категории: {e}")
+        await callback.message.edit_text("Произошла ошибка при обработке категории.")
+        await callback.answer()
+
+
+@router.callback_query(lambda c: c.data.startswith("calendar_prev_") or c.data.startswith("calendar_next_"))
+async def handle_pagination(callback: types.CallbackQuery, state: FSMContext):
+    """Обработчик пагинации."""
+    try:
+        data = await state.get_data()
+        category = data.get("category", "all")
+        current_page = int(callback.data.split("_")[-1])
+        total_pages = data.get("total_pages", 1)
+
+        action = callback.data.split("_")[1]  # prev или next
+        new_page = current_page - 1 if action == "prev" else current_page + 1
+
+        if new_page < 1 or new_page > total_pages:
+            await callback.answer("Достигнут предел страниц.")
+            return
+
+        user_id = callback.from_user.id
+        all_events = await get_events(user_id=user_id)
+
+        # Фильтруем события по категории
+        crypto_symbols = {"BTC", "ETH", "BNB", "XRP", "ADA", "SOL", "DOGE", "DOT", "LTC", "LINK"}
+        investment_symbols = {"AAPL", "MSFT", "AMZN", "GOOGL", "TSLA", "NVDA", "JPM", "GS", "V", "MA"}
+
+        if category == "crypto":
+            filtered_events = [e for e in all_events if
+                               e[6] in crypto_symbols or (e[6] is None and e[5] in ["macro", "press"])]
+        elif category == "investments":
+            filtered_events = [e for e in all_events if
+                               e[6] in investment_symbols or (e[6] is None and e[5] in ["macro", "earnings"])]
+        else:
+            filtered_events = all_events
+
+        if not filtered_events:
+            await callback.message.edit_text("Событий в выбранной категории нет.")
+            return
+
+        text, total_pages = format_events(filtered_events, page=new_page)
+        keyboard = get_pagination_keyboard(new_page, total_pages, category)
+
+        await callback.message.edit_text(
+            f"📅 Календарь событий ({'Криптовалюты' if category == 'crypto' else 'Инвестиции' if category == 'investments' else 'Все'}):\n\n{text}",
+            reply_markup=keyboard
+        )
+        await state.update_data(current_page=new_page, total_pages=total_pages)
+        await callback.answer()
+    except Exception as e:
+        logger.error(f"Ошибка при пагинации: {e}")
+        await callback.message.edit_text("Произошла ошибка при пагинации.")
+        await callback.answer()

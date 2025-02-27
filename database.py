@@ -225,3 +225,20 @@ async def get_events(user_id: int = None, event_type: str = None, portfolio_only
     except Exception as e:
         logger.error(f"Ошибка при получении событий: {e}")
         raise
+
+async def load_sample_events():
+    """Загружает пример событий в базу данных."""
+    events = get_sample_events()
+    for event in events:
+        try:
+            await add_event(
+                event_date=event["event_date"],
+                title=event["title"],
+                description=event["description"],
+                source=event["source"],
+                event_type=event["type"],
+                symbol=event["symbol"]
+            )
+            logger.info(f"Добавлено примерное событие: {event['title']}")
+        except Exception as e:
+            logger.error(f"Ошибка при добавлении примера события: {e}")

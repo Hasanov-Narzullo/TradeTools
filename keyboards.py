@@ -147,3 +147,21 @@ def calendar_menu_keyboard() -> InlineKeyboardMarkup:
             InlineKeyboardButton(text="🔙 Назад", callback_data="main_menu")
         ]
     ])
+
+def get_pagination_keyboard(current_page: int, total_pages: int, category: str) -> InlineKeyboardMarkup:
+    buttons = []
+    if current_page > 1:
+        buttons.append(InlineKeyboardButton(text="⬅️ Назад", callback_data=f"calendar_prev_{category}_{current_page}"))
+    if current_page < total_pages:
+        buttons.append(InlineKeyboardButton(text="Вперед ➡️", callback_data=f"calendar_next_{category}_{current_page}"))
+
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[buttons] if buttons else [])
+    return keyboard
+
+def get_category_keyboard() -> InlineKeyboardMarkup:
+    buttons = [
+        [InlineKeyboardButton(text="Криптовалюты", callback_data="calendar_category_crypto")],
+        [InlineKeyboardButton(text="Инвестиции", callback_data="calendar_category_investments")],
+        [InlineKeyboardButton(text="Все события", callback_data="calendar_category_all")]
+    ]
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
