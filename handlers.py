@@ -1014,7 +1014,7 @@ async def handle_calendar_filter(callback: CallbackQuery, state: FSMContext):
     events = await get_events(user_id=user_id, event_type=event_type, portfolio_only=portfolio_only)
     if not events:
         await callback.message.answer(
-            "Событий не найдено.",
+            "Событий не найдено. Попробуйте обновить календарь позже.",
             reply_markup=calendar_menu_keyboard()
         )
         logger.info(f"Пользователь {user_id} запросил события (пусто, фильтр: {filter_type}).")
@@ -1027,7 +1027,7 @@ async def handle_calendar_filter(callback: CallbackQuery, state: FSMContext):
     )
     await state.update_data(calendar_filter=filter_type)
     await callback.answer()
-    logger.info(f"Пользователь {user_id} запросил события (фильтр: {filter_type}, страница 1).")
+    logger.info(f"Пользователь {user_id} запросил события (фильтр: {filter_type}, страница 1, событий: {len(events)}).")
 
 @router.callback_query(F.data.startswith("calendar_page_"))
 async def handle_calendar_page(callback: CallbackQuery, state: FSMContext):

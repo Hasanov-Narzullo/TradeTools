@@ -153,6 +153,11 @@ async def init_db():
     """Инициализация базы данных и создание таблиц."""
     try:
         async with aiosqlite.connect(settings.db.DB_PATH) as db:
+            # Проверяем текущую структуру таблицы
+            cursor = await db.execute("PRAGMA table_info(events)")
+            columns = [row[1] for row in await cursor.fetchall()]
+
+            # Создаем таблицу, если она не существует
             await db.execute("""
                 CREATE TABLE IF NOT EXISTS events (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -162,9 +167,18 @@ async def init_db():
                     source TEXT,
                     type TEXT,  -- Тип события (macro, dividends, earnings, press)
                     symbol TEXT, -- Символ актива (NULL для общеэкономических событий)
-                    UNIQUE(event_date, title, symbol)  -- Уникальность событий
+                    UNIQUE(event_date, title, symbol)
                 )
             """)
+
+            # Добавляем столбцы, если они отсутствуют
+            if "type" not in columns:
+                await db.execute("ALTER TABLE events ADD COLUMN type TEXT")
+                logger.info("Добавлен столбец 'type' в таблицу events.")
+            if "symbol" not in columns:
+                await db.execute("ALTER TABLE events ADD COLUMN symbol TEXT")
+                logger.info("Добавлен столбец 'symbol' в таблицу events.")
+
             await db.commit()
         logger.info("База данных инициализирована.")
     except Exception as e:

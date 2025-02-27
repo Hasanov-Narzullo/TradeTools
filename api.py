@@ -290,7 +290,7 @@ EVENT_TYPES = {
     "press": "Пресс-конференции"
 }
 
-@cached(ttl=3600)  # Кэшируем на 1 час
+@cached(ttl=3600)
 async def fetch_economic_calendar() -> list:
     """Парсинг экономического календаря с Investing.com."""
     url = "https://www.investing.com/economic-calendar/"
@@ -313,10 +313,14 @@ async def fetch_economic_calendar() -> list:
                     return events
 
                 rows = table.find("tbody").find_all("tr", class_="js-event-item")
+                if not rows:
+                    logger.warning("События не найдены на Investing.com")
+                    return events
+
                 for row in rows:
                     try:
                         event_time = row.find("td", class_="time").text.strip()
-                        event_date = datetime.now().strftime("%Y-%m-%d")  # Можно улучшить парсинг даты
+                        event_date = datetime.now().strftime("%Y-%m-%d")  # Улучшить парсинг даты
                         event_title = row.find("td", class_="event").text.strip()
                         event_impact = row.find("td", class_="sentiment").get("title", "Low Impact")
 
@@ -325,17 +329,20 @@ async def fetch_economic_calendar() -> list:
                             "title": event_title,
                             "description": f"Влияние: {event_impact}",
                             "source": "Investing.com",
-                            "type": "macro"  # Общеэкономические события
+                            "type": "macro"
                         })
+                        logger.debug(f"Добавлено событие: {event_title}")
                     except Exception as e:
                         logger.error(f"Ошибка при парсинге события: {e}")
                         continue
     except Exception as e:
         logger.error(f"Ошибка при парсинге Investing.com: {e}")
 
+    logger.info(f"Получено {len(events)} общеэкономических событий с Investing.com")
     return events
 
-@cached(ttl=3600)  # Кэшируем на 1 час
+
+@cached(ttl=3600)
 async def fetch_dividends_and_earnings(symbol: str) -> list:
     """Получение дивидендов и отчетностей для актива через yfinance."""
     events = []
@@ -355,6 +362,7 @@ async def fetch_dividends_and_earnings(symbol: str) -> list:
                 "type": "dividends",
                 "symbol": symbol
             })
+            logger.debug(f"Добавлено событие дивидендов для {symbol}")
 
         # Отчетности
         if earnings_dates is not None:
@@ -368,42 +376,10 @@ async def fetch_dividends_and_earnings(symbol: str) -> list:
                     "type": "earnings",
                     "symbol": symbol
                 })
+                logger.debug(f"Добавлено событие отчетности для {symbol}")
     except Exception as e:
         logger.error(f"Ошибка при получении событий для {symbol}: {e}")
 
+    logger.info(f"Получено {len(events)} событий для актива {symbol}")
     return events
 
-async def update_calendar():
-    """Обновление календаря событий."""
-    logger.info("Обновление календаря событий...")
-
-    # Получаем общеэкономические события
-    economic_events = await fetch_economic_calendar()
-    for event in economic_events:
-        await add_event(
-            event_date=event["event_date"],
-            title=event["title"],
-            description=event["description"],
-            source=event["source"],
-            event_type=event["type"],
-            symbol=None
-        )
-
-    # Получаем события для активов из портфеля
-    async with aiosqlite.connect(settings.db.DB_PATH) as db:
-        cursor = await db.execute("SELECT DISTINCT symbol FROM portfolios")
-        symbols = [row[0] for row in await cursor.fetchall()]
-
-    for symbol in symbols:
-        asset_events = await fetch_dividends_and_earnings(symbol)
-        for event in asset_events:
-            await add_event(
-                event_date=event["event_date"],
-                title=event["title"],
-                description=event["description"],
-                source=event["source"],
-                event_type=event["type"],
-                symbol=event["symbol"]
-            )
-
-    logger.info("Календарь событий обновлен.")

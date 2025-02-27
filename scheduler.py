@@ -53,6 +53,7 @@ async def update_calendar():
             event_type=event["type"],
             symbol=None
         )
+        logger.debug(f"Добавлено общеэкономическое событие: {event['title']}")
 
     # Получаем события для активов из портфеля
     async with aiosqlite.connect(settings.db.DB_PATH) as db:
@@ -70,8 +71,9 @@ async def update_calendar():
                 event_type=event["type"],
                 symbol=event["symbol"]
             )
+            logger.debug(f"Добавлено событие для актива {symbol}: {event['title']}")
 
-    logger.info("Календарь событий обновлен.")
+    logger.info(f"Календарь событий обновлен. Добавлено {len(economic_events)} общеэкономических событий и событий для {len(symbols)} активов.")
 
 def setup_scheduler(scheduler: AsyncIOScheduler):
     """Настройка планировщика задач."""
