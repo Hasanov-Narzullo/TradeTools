@@ -41,29 +41,54 @@ async def update_quotes():
 
 async def update_calendar():
     """Обновление календаря событий."""
-    logger.info("Обновление календаря событий...")
+    logger.info("Начало обновления календаря событий...")
 
-    # Получаем общеэкономические события
-    economic_events = await fetch_economic_calendar()
-    for event in economic_events:
-        await add_event(
-            event_date=event["event_date"],
-            title=event["title"],
-            description=event["description"],
-            source=event["source"],
-            event_type=event["type"],
-            symbol=None
-        )
-        logger.debug(f"Добавлено общеэкономическое событие: {event['title']}")
-
-    # Получаем события для активов из портфеля
+    # Проверяем портфель
     async with aiosqlite.connect(settings.db.DB_PATH) as db:
         cursor = await db.execute("SELECT DISTINCT symbol FROM portfolios")
         symbols = [row[0] for row in await cursor.fetchall()]
+        logger.info(f"Найдено {len(symbols)} уникальных символов в портфеле: {symbols}")
 
+    # Получаем общеэкономические события
+    economic_events = await fetch_economic_calendar()
+    logger.info(f"Получено {len(economic_events)} общеэкономических событий с Trading Economics")
+    for event in economic_events:
+        try:
+            await add_event(
+                event_date=event["event_date"],
+                title=event["title"],
+                description=event["description"],
+                source=event["source"],
+                event_type=event["type"],
+                symbol=None
+            )
+            logger.debug(f"Добавлено общеэкономическое событие: {event['title']}")
+        except Exception as e:
+            logger.error(f"Ошибка при добавлении общеэкономического события: {e}")
+
+    # Получаем события для активов из портфеля
     for symbol in symbols:
         asset_events = await fetch_dividends_and_earnings(symbol)
+        logger.info(f"Получено {len(asset_events)} событий для актива {symbol}")
         for event in asset_events:
+            try:
+                await add_event(
+                    event_date=event["event_date"],
+                    title=event["title"],
+                    description=event["description"],
+                    source=event["source"],
+                    event_type=event["type"],
+                    symbol=event["symbol"]
+                )
+                logger.debug(f"Добавлено событие для актива {symbol}: {event['title']}")
+            except Exception as e:
+                logger.error(f"Ошибка при добавлении события для актива {symbol}: {e}")
+
+    # Добавляем тестовые события для проверки
+    test_events = await fetch_test_events()
+    logger.info(f"Получено {len(test_events)} тестовых событий")
+    for event in test_events:
+        try:
             await add_event(
                 event_date=event["event_date"],
                 title=event["title"],
@@ -72,22 +97,15 @@ async def update_calendar():
                 event_type=event["type"],
                 symbol=event["symbol"]
             )
-            logger.debug(f"Добавлено событие для актива {symbol}: {event['title']}")
+            logger.debug(f"Добавлено тестовое событие: {event['title']}")
+        except Exception as e:
+            logger.error(f"Ошибка при добавлении тестового события: {e}")
 
-    # Добавляем тестовые события для проверки
-    test_events = await fetch_test_events()
-    for event in test_events:
-        await add_event(
-            event_date=event["event_date"],
-            title=event["title"],
-            description=event["description"],
-            source=event["source"],
-            event_type=event["type"],
-            symbol=event["symbol"]
-        )
-        logger.debug(f"Добавлено тестовое событие: {event['title']}")
-
-    logger.info(f"Календарь событий обновлен. Добавлено {len(economic_events)} общеэкономических событий, событий для {len(symbols)} активов и {len(test_events)} тестовых событий.")
+    # Проверяем базу данных после обновления
+    async with aiosqlite.connect(settings.db.DB_PATH) as db:
+        cursor = await db.execute("SELECT COUNT(*) FROM events")
+        event_count = (await cursor.fetchone())[0]
+        logger.info(f"Календарь событий обновлен. В базе данных {event_count} событий.")
 
 def setup_scheduler(scheduler: AsyncIOScheduler):
     """Настройка планировщика задач."""

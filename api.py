@@ -290,7 +290,7 @@ EVENT_TYPES = {
     "press": "Пресс-конференции"
 }
 
-@cached(ttl=3600)  # Кэшируем на 1 час
+@cached(ttl=3600)
 async def fetch_economic_calendar() -> list:
     """Парсинг экономического календаря с Trading Economics."""
     url = "https://tradingeconomics.com/calendar"
@@ -321,10 +321,21 @@ async def fetch_economic_calendar() -> list:
                     try:
                         cells = row.find_all("td")
                         if len(cells) < 4:
+                            logger.debug("Недостаточно данных в строке, пропускаем")
                             continue
 
+                        # Парсинг времени и даты
                         event_time = cells[0].text.strip()
                         event_date = datetime.now().strftime("%Y-%m-%d")  # Улучшить парсинг даты
+                        try:
+                            # Попытка парсинга даты из заголовка таблицы (если доступно)
+                            date_header = row.find_previous("tr", class_="calendar-date")
+                            if date_header:
+                                date_text = date_header.text.strip()
+                                event_date = datetime.strptime(date_text, "%Y-%m-%d").strftime("%Y-%m-%d")
+                        except Exception as e:
+                            logger.debug(f"Ошибка при парсинге даты: {e}, используется текущая дата")
+
                         event_title = cells[2].text.strip()
                         event_impact = cells[3].text.strip() or "Low Impact"
 
@@ -333,7 +344,8 @@ async def fetch_economic_calendar() -> list:
                             "title": event_title,
                             "description": f"Влияние: {event_impact}",
                             "source": "Trading Economics",
-                            "type": "macro"
+                            "type": "macro",
+                            "symbol": None
                         })
                         logger.debug(f"Добавлено событие: {event_title}")
                     except Exception as e:
@@ -424,4 +436,3 @@ async def fetch_test_events() -> list:
 
     logger.info(f"Добавлено {len(events)} тестовых событий")
     return events
-

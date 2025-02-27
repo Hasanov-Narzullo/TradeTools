@@ -1012,6 +1012,7 @@ async def handle_calendar_filter(callback: CallbackQuery, state: FSMContext):
         portfolio_only = False
 
     events = await get_events(user_id=user_id, event_type=event_type, portfolio_only=portfolio_only)
+    logger.info(f"Получено {len(events)} событий для фильтра {filter_type}")
     if not events:
         await callback.message.answer(
             "Событий не найдено. Попробуйте обновить календарь позже.",
