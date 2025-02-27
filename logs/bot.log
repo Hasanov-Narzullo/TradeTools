@@ -1319,3 +1319,21 @@
 2025-02-27 13:59:41.679 | INFO     | handlers:handle_calendar_filter:1021 - Пользователь 413467341 запросил события (пусто, фильтр: portfolio).
 2025-02-27 13:59:43.358 | INFO     | handlers:handle_calendar_filter:1015 - Получено 0 событий для фильтра press
 2025-02-27 13:59:43.520 | INFO     | handlers:handle_calendar_filter:1021 - Пользователь 413467341 запросил события (пусто, фильтр: press).
+2025-02-27 14:00:13.930 | INFO     | __main__:<module>:49 - Запуск бота...
+2025-02-27 14:00:13.931 | INFO     | bot:setup_bot:20 - Инициализация бота...
+2025-02-27 14:00:13.931 | INFO     | bot:setup_bot:23 - Хэндлеры зарегистрированы.
+2025-02-27 14:00:13.931 | INFO     | scheduler:setup_scheduler:115 - Планировщик настроен.
+2025-02-27 14:00:13.938 | ERROR    | database:init_db:185 - Ошибка при инициализации базы данных: duplicate column name: type
+2025-02-27 14:00:13.938 | ERROR    | __main__:main:32 - Ошибка при запуске бота: duplicate column name: type
+2025-02-27 14:00:13.938 | INFO     | bot:on_shutdown:32 - Бот остановлен.
+2025-02-27 14:00:13.938 | INFO     | __main__:main:37 - Фоновая задача проверки алертов запущена.
+2025-02-27 14:00:13.938 | INFO     | __main__:main:41 - Бот запущен.
+2025-02-27 14:00:13.938 | ERROR    | alert_checker:check_alerts:46 - Ошибка при проверке алертов: get_alerts() missing 1 required positional argument: 'user_id'
+2025-02-27 14:01:06.644 | INFO     | __main__:<module>:49 - Запуск бота...
+2025-02-27 14:01:06.645 | INFO     | bot:setup_bot:20 - Инициализация бота...
+2025-02-27 14:01:06.645 | INFO     | bot:setup_bot:23 - Хэндлеры зарегистрированы.
+2025-02-27 14:01:06.646 | INFO     | scheduler:setup_scheduler:115 - Планировщик настроен.
+2025-02-27 14:01:06.649 | INFO     | database:init_db:183 - База данных инициализирована.
+2025-02-27 14:01:06.649 | INFO     | bot:on_startup:28 - Бот запущен.
+2025-02-27 14:01:10.228 | INFO     | handlers:handle_calendar_filter:1015 - Получено 0 событий для фильтра all
+2025-02-27 14:01:10.493 | INFO     | handlers:handle_calendar_filter:1021 - Пользователь 413467341 запросил события (пусто, фильтр: all).

@@ -32,4 +32,3 @@ async def on_shutdown():
     logger.info("Бот остановлен.")
     await bot.session.close()  # Закрытие сессии бота
     await storage.close()      # Закрытие хранилища
-    # Удаляем вызов wait_closed(), так как он не нужен для MemoryStorage

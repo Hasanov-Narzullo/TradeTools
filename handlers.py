@@ -286,14 +286,18 @@ async def add_price(message: Message, state: FSMContext):
             amount=data["amount"],
             purchase_price=price
         )
-        await message.answer("Актив добавлен в портфель!")
+        await message.answer("Актив добавлен в портфель!", reply_markup=main_menu())
         await state.clear()
         logger.info(f"Пользователь {user_id} добавил актив в портфель: {data['symbol']} ({data['asset_type']})")
     except ValueError:
         await message.answer("Пожалуйста, введите число.")
+        logger.warning(f"Пользователь {user_id} ввел некорректную цену: {message.text}")
     except Exception as e:
-        await message.answer("Произошла ошибка при добавлении актива. Пожалуйста, попробуйте снова.")
         logger.error(f"Ошибка при добавлении актива для пользователя {user_id}: {e}")
+        await message.answer(
+            "Произошла ошибка при добавлении актива. Пожалуйста, попробуйте позже.",
+            reply_markup=main_menu()
+        )
         await state.clear()
 
 @router.message(Command("set_alert"))
