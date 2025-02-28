@@ -1,5 +1,8 @@
+from datetime import datetime
 from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
+
+from bot import bot
 from keyboards import main_menu, asset_type_keyboard, alert_condition_keyboard, alert_actions_keyboard, \
     portfolio_actions_keyboard, confirm_alert_keyboard, confirm_remove_asset_keyboard, alerts_menu_keyboard, \
     quotes_menu_keyboard, calendar_menu_keyboard, pagination_keyboard, get_category_keyboard, get_pagination_keyboard
@@ -17,17 +20,62 @@ from database import get_events, load_sample_events
 from utils import format_events, EVENT_TYPES
 from loguru import logger
 from events_data import get_sample_events
-
+from aiogram.types import ChatMemberUpdated
+from aiogram.exceptions import TelegramAPIError
 
 
 router = Router()
+CHANNEL_ID = "@offensivepoltergeist"
+
+async def check_subscription(user_id: int) -> bool:
+    """Проверяет, подписан ли пользователь на канал."""
+    try:
+        member = await bot.get_chat_member(chat_id=CHANNEL_ID, user_id=user_id)
+        return member.status in ['member', 'administrator', 'creator']
+    except TelegramAPIError as e:
+        logger.error(f"Ошибка при проверке подписки для пользователя {user_id}: {e}")
+        return False
 
 
 @router.message(Command("start"))
 async def cmd_start(message: Message):
-    """Обработчик команды /start."""
+    """Обработчик команды /start с проверкой подписки."""
+    user_id = message.from_user.id
+    is_subscribed = await check_subscription(user_id)
+
+    if not is_subscribed:
+        await message.answer(
+            "Для использования бота необходимо подписаться на канал!\n"
+            f"Пожалуйста, подпишитесь на {CHANNEL_ID} и нажмите /start снова.",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="Подписаться", url=f"https://t.me/{CHANNEL_ID[1:]}")]
+            ])
+        )
+        logger.info(f"Пользователь {user_id} не подписан на канал.")
+        return
+
     await message.answer("Добро пожаловать! Выберите действие:", reply_markup=main_menu())
-    logger.info(f"Пользователь {message.from_user.id} запустил бота.")
+    logger.info(f"Пользователь {user_id} запустил бота (подписан).")
+
+
+async def check_subscription_middleware(message: Message, state: FSMContext = None):
+    user_id = message.from_user.id
+    is_subscribed = await check_subscription(user_id)
+
+    if not is_subscribed:
+        await message.answer(
+            "Для использования этой функции необходимо подписаться на канал!\n"
+            f"Пожалуйста, подпишитесь на {CHANNEL_ID}.",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="Подписаться", url=f"https://t.me/{CHANNEL_ID[1:]}")]
+            ])
+        )
+        logger.info(f"Пользователь {user_id} попытался использовать функцию без подписки.")
+        # Очищаем состояние, если оно передано
+        if state:
+            await state.clear()
+        return False
+    return True
 
 @router.message(Command("help"))
 async def cmd_help(message: Message):
@@ -66,7 +114,8 @@ async def cmd_help(message: Message):
 
 @router.message(Command("quotes"))
 async def cmd_quotes(message: Message, state: FSMContext):
-    """Обработчик команды /quotes для получения котировок."""
+    if not await check_subscription_middleware(message, state):
+        return
     await message.answer("Выберите тип актива:", reply_markup=asset_type_keyboard())
     await state.set_state(PortfolioState.selecting_asset_type)
     logger.info(f"Пользователь {message.from_user.id} запросил котировки.")
@@ -128,6 +177,8 @@ async def get_quote(message: Message, state: FSMContext):
 @router.message(Command("portfolio"))
 async def cmd_portfolio(message: Message):
     """Обработчик команды /portfolio для просмотра портфеля."""
+    if not await check_subscription_middleware(message):
+        return
     portfolio = await get_portfolio(message.from_user.id)
 
     if not portfolio:
@@ -165,7 +216,8 @@ async def cmd_portfolio(message: Message):
 
 @router.message(Command("add_to_portfolio"))
 async def cmd_add_to_portfolio(message: Message, state: FSMContext):
-    """Обработчик команды /add_to_portfolio для добавления актива."""
+    if not await check_subscription_middleware(message, state):
+        return
     await message.answer("Выберите тип актива:", reply_markup=asset_type_keyboard())
     await state.set_state(PortfolioState.adding_asset_type)
     logger.info(f"Пользователь {message.from_user.id} начал добавление актива в портфель.")
@@ -309,7 +361,8 @@ async def add_price(message: Message, state: FSMContext):
 
 @router.message(Command("set_alert"))
 async def cmd_set_alert(message: Message, state: FSMContext):
-    """Обработчик команды /set_alert для настройки алерта."""
+    if not await check_subscription_middleware(message, state):
+        return
     await message.answer("Выберите тип актива:", reply_markup=asset_type_keyboard())
     await state.set_state(AlertState.selecting_asset_type)
     logger.info(f"Пользователь {message.from_user.id} начал настройку алерта.")
@@ -415,31 +468,11 @@ async def select_alert_condition(callback: CallbackQuery, state: FSMContext):
 
 @router.message(Command("calendar"))
 async def show_calendar(message: Message, state: FSMContext):
-    """Показывает календарь событий с возможностью фильтрации."""
-    user_id = message.from_user.id
-    try:
-        all_events = get_sample_events()  # Получаем все события
-        if not all_events:
-            await message.answer(
-                "Событий не найдено. Попробуйте обновить календарь позже.",
-                reply_markup=calendar_menu_keyboard()
-            )
-            logger.info(f"Пользователь {user_id} запросил календарь событий (пусто).")
-            return
-
-        formatted_events, total_pages = format_events(all_events, page=1)
-        await message.answer(
-            formatted_events,
-            reply_markup=calendar_menu_keyboard()
-        )
-        await state.update_data(calendar_filter="all", current_page=1, total_pages=total_pages)
-        logger.info(f"Пользователь {user_id} запросил календарь событий (страница 1, событий: {len(all_events)}).")
-    except Exception as e:
-        logger.error(f"Ошибка при отображении календаря: {e}")
-        await message.answer(
-            "Произошла ошибка при отображении календаря. Пожалуйста, попробуйте снова.",
-            reply_markup=calendar_menu_keyboard()
-        )
+    if not await check_subscription_middleware(message, state):
+        return
+    await message.answer("Выберите категорию событий:", reply_markup=get_category_keyboard())
+    await state.set_state(CalendarStates.viewing_calendar)
+    logger.info(f"Пользователь {message.from_user.id} запросил календарь событий.")
 
 @router.message(Command("remove_from_portfolio"))
 async def cmd_remove_from_portfolio(message: Message, state: FSMContext):
@@ -502,6 +535,8 @@ async def remove_symbol_handler(message: Message, state: FSMContext):
 @router.message(Command("market"))
 async def cmd_market(message: Message):
     """Обработчик команды /market для просмотра текущих рыночных цен."""
+    if not await check_subscription_middleware(message):
+        return
     user_id = message.from_user.id
     portfolio = await get_portfolio(user_id)
 
@@ -550,6 +585,8 @@ async def cmd_cancel(message: Message, state: FSMContext):
 @router.message(Command("alerts"))
 async def cmd_alerts(message: Message):
     """Обработчик команды /alerts для просмотра установленных алертов."""
+    if not await check_subscription_middleware(message):
+        return
     user_id = message.from_user.id
     alerts = await get_alerts(user_id)
 
@@ -862,29 +899,23 @@ async def confirm_remove_asset(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
     logger.info(f"Пользователь {user_id} удалил актив {symbol} из портфеля.")
 
-@router.callback_query(F.data.in_({"quotes", "portfolio", "add_to_portfolio", "set_alert", "calendar", "help", "market"}))
-async def handle_menu_command(callback: CallbackQuery, state: FSMContext):
-    """Обработчик команд из главного меню, сбрасывающий текущее состояние."""
-    current_state = await state.get_state()
-    if current_state:
-        await state.clear()
-        logger.info(f"Пользователь {callback.from_user.id} сбросил состояние {current_state} для выполнения команды {callback.data}")
 
-    command = callback.data
-    if command == "quotes":
-        await handle_quotes_menu(callback, state)
-    elif command == "portfolio":
-        await handle_portfolio(callback)
-    elif command == "add_to_portfolio":
-        await handle_add_to_portfolio(callback, state)
-    elif command == "set_alert":
-        await handle_set_alert(callback, state)
-    elif command == "calendar":
-        await handle_calendar_menu(callback)
-    elif command == "help":
-        await handle_help(callback)
-    elif command == "market":
-        await handle_market_overview(callback)
+@router.callback_query(F.data.in_({"quotes", "portfolio", "add_to_portfolio", "set_alert", "calendar", "market", "alerts_menu"}))
+async def handle_menu_command(callback: CallbackQuery, state: FSMContext):
+    user_id = callback.from_user.id
+    is_subscribed = await check_subscription(user_id)
+
+    if not is_subscribed:
+        await callback.message.answer(
+            "Для использования этой функции необходимо подписаться на канал!\n"
+            f"Пожалуйста, подпишитесь на {CHANNEL_ID}.",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="Подписаться", url=f"https://t.me/{CHANNEL_ID[1:]}")]
+            ])
+        )
+        await callback.answer()
+        logger.info(f"Пользователь {user_id} попытался использовать callback без подписки.")
+        return
 
 @router.callback_query(F.data == "alerts_menu")
 async def handle_alerts_menu(callback: CallbackQuery):
@@ -1044,15 +1075,28 @@ async def handle_alerts_page(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
     logger.info(f"Пользователь {callback.from_user.id} перешел на страницу алертов {page}.")
 
+
 @router.callback_query(F.data.startswith("calendar_"))
 async def handle_calendar_filter(callback: CallbackQuery, state: FSMContext):
     """Обработчик фильтрации событий."""
     user_id = callback.from_user.id
-    filter_type = callback.data.replace("calendar_", "")
-    portfolio_only = filter_type == "portfolio"
-    event_type = None
+    current_message_text = callback.message.text
+    current_reply_markup = callback.message.reply_markup
 
     try:
+        data = callback.data
+
+        # Проверяем, является ли callback пагинацией
+        if "page_" in data:
+            await handle_pagination(callback, state)
+            return
+
+        filter_type = data.replace("calendar_", "")
+        await state.update_data(calendar_filter=filter_type, current_page=1)
+
+        portfolio_only = filter_type == "portfolio"
+        event_type = None
+
         if filter_type == "macro":
             event_type = "macro"
         elif filter_type == "dividends":
@@ -1065,46 +1109,70 @@ async def handle_calendar_filter(callback: CallbackQuery, state: FSMContext):
             event_type = None
             portfolio_only = False
 
-        all_events = get_sample_events()  # Получаем события из events_data.py
-        portfolio = await get_portfolio(user_id) if portfolio_only else []
-        portfolio_symbols = {asset['symbol'] for asset in portfolio} if portfolio_only else set()
+        events = await get_events(user_id=user_id, event_type=event_type, portfolio_only=portfolio_only)
+        logger.info(f"Получено событий из БД: {len(events)} для фильтра {filter_type}")
 
-        # Фильтруем события
-        filtered_events = []
-        for event in all_events:
-            # Фильтр по типу события
-            if event_type and event['type'] != event_type:
-                continue
-            # Фильтр по портфелю
-            if portfolio_only and event['symbol'] != "-" and event['symbol'] not in portfolio_symbols:
-                continue
-            filtered_events.append(event)
+        if not events:
+            all_events = get_sample_events()
+            crypto_symbols = {"BTC", "ETH", "BNB", "XRP", "ADA", "SOL", "DOGE", "DOT", "LTC", "LINK"}
+            investment_symbols = {"AAPL", "MSFT", "AMZN", "GOOGL", "TSLA", "NVDA", "JPM", "GS", "V", "MA"}
 
-        if not filtered_events:
-            await callback.message.answer(
-                "Событий не найдено. Попробуйте обновить календарь позже.",
-                reply_markup=calendar_menu_keyboard()
-            )
-            logger.info(f"Пользователь {user_id} запросил события (пусто, фильтр: {filter_type}).")
+            if filter_type == "portfolio":
+                portfolio = await get_portfolio(user_id)
+                portfolio_symbols = {asset['symbol'] for asset in portfolio}
+                events = [e for e in all_events if e['symbol'] in portfolio_symbols]
+            elif filter_type == "macro":
+                events = [e for e in all_events if e['type'] == "macro"]
+            elif filter_type == "dividends":
+                events = [e for e in all_events if e['type'] == "dividends"]
+            elif filter_type == "earnings":
+                events = [e for e in all_events if e['type'] == "earnings"]
+            elif filter_type == "press":
+                events = [e for e in all_events if e['type'] == "press"]
+            elif filter_type == "all":
+                events = all_events
+            logger.info(f"Получено sample событий: {len(events)} для фильтра {filter_type}")
+
+        if not events:
+            new_text = f"Событий не найдено для фильтра: {filter_type}"
+            new_markup = calendar_menu_keyboard()
+
+            if current_message_text != new_text or str(current_reply_markup) != str(new_markup):
+                await callback.message.edit_text(
+                    new_text,
+                    reply_markup=new_markup
+                )
             await callback.answer()
+            logger.info(f"Пользователь {user_id} запросил события (пусто, фильтр: {filter_type}).")
             return
 
-        formatted_events, total_pages = format_events(filtered_events, page=1)
-        await callback.message.answer(
-            formatted_events,
-            reply_markup=pagination_keyboard(current_page=1, total_pages=total_pages, prefix="calendar")
+        events = sorted(
+            events,
+            key=lambda x: datetime.strptime(x['event_date'], "%Y-%m-%d %H:%M:%S")
         )
-        await state.update_data(calendar_filter=filter_type, current_page=1, total_pages=total_pages)
+        await state.update_data(filtered_events=events)
+
+        formatted_events, total_pages = format_events(events, page=1)
+        new_markup = pagination_keyboard(current_page=1, total_pages=total_pages, prefix="calendar")
+
+        if current_message_text != formatted_events or str(current_reply_markup) != str(new_markup):
+            await callback.message.edit_text(
+                formatted_events,
+                reply_markup=new_markup
+            )
+        await state.update_data(total_pages=total_pages)
         await callback.answer()
-        logger.info(f"Пользователь {user_id} запросил события (фильтр: {filter_type}, страница 1, событий: {len(filtered_events)}).")
+        logger.info(
+            f"Пользователь {user_id} запросил события (фильтр: {filter_type}, страница 1, событий: {len(events)}).")
     except Exception as e:
         logger.error(f"Ошибка при фильтрации событий: {e}")
-        await callback.message.answer(
-            "Произошла ошибка при фильтрации событий. Пожалуйста, попробуйте снова.",
-            reply_markup=calendar_menu_keyboard()
-        )
+        error_text = "Произошла ошибка при фильтрации событий."
+        if current_message_text != error_text:
+            await callback.message.edit_text(
+                error_text,
+                reply_markup=calendar_menu_keyboard()
+            )
         await callback.answer()
-
 
 
 @router.callback_query(F.data.startswith("calendar_page_"))
@@ -1173,99 +1241,169 @@ async def show_calendar(message: Message, state: FSMContext):
 
 @router.callback_query(lambda c: c.data.startswith("calendar_category_"))
 async def handle_category_selection(callback: CallbackQuery, state: FSMContext):
-    """Обработчик выбора категории."""
+    """Обработчик выбора категории с корректной сортировкой по дате."""
     user_id = callback.from_user.id
     try:
-        category = callback.data.split("_")[-1]  # crypto, investments, all
+        category = callback.data.split("_")[-1]
         await state.update_data(category=category, current_page=1)
 
-        all_events = get_sample_events()  # Получаем события из events_data.py
+        all_events = get_sample_events()
 
-        # Фильтруем события по категории
         crypto_symbols = {"BTC", "ETH", "BNB", "XRP", "ADA", "SOL", "DOGE", "DOT", "LTC", "LINK"}
         investment_symbols = {"AAPL", "MSFT", "AMZN", "GOOGL", "TSLA", "NVDA", "JPM", "GS", "V", "MA"}
 
         if category == "crypto":
             filtered_events = [e for e in all_events if
-                               e['symbol'] in crypto_symbols or (e['symbol'] == "-" and e['type'] in ["macro", "press"])]
+                               e['symbol'] in crypto_symbols or
+                               (e['symbol'] == "-" and e['type'] in ["macro", "press"])]
         elif category == "investments":
             filtered_events = [e for e in all_events if
-                               e['symbol'] in investment_symbols or (e['symbol'] == "-" and e['type'] in ["macro", "earnings"])]
+                               e['symbol'] in investment_symbols or
+                               (e['symbol'] == "-" and e['type'] in ["macro", "earnings"])]
         else:
             filtered_events = all_events
 
+        filtered_events = sorted(
+            filtered_events,
+            key=lambda x: datetime.strptime(x['event_date'], "%Y-%m-%d %H:%M:%S")
+        )
+
         if not filtered_events:
-            await callback.message.edit_text("Событий в выбранной категории нет.")
+            await callback.message.edit_text(
+                "Событий в выбранной категории нет.",
+                reply_markup=calendar_menu_keyboard()
+            )
             await callback.answer()
             logger.info(f"Пользователь {user_id} запросил события (пусто, категория: {category}).")
             return
 
+        await state.update_data(filtered_events=filtered_events)
+
         text, total_pages = format_events(filtered_events, page=1)
         keyboard = get_pagination_keyboard(1, total_pages, category)
 
+        category_display = {
+            "crypto": "Криптовалюты",
+            "investments": "Инвестиции",
+            "all": "Все события"
+        }.get(category, "Все события")
+
         await callback.message.edit_text(
-            f"📅 Календарь событий ({'Криптовалюты' if category == 'crypto' else 'Инвестиции' if category == 'investments' else 'Все'}):\n\n{text}",
+            f"📅 Календарь событий ({category_display}):\n\n{text}",
             reply_markup=keyboard
         )
         await state.update_data(total_pages=total_pages)
         await callback.answer()
-        logger.info(f"Пользователь {user_id} запросил события (категория: {category}, страница 1, событий: {len(filtered_events)}).")
+        logger.info(
+            f"Пользователь {user_id} запросил события (категория: {category}, страница 1, событий: {len(filtered_events)}).")
     except Exception as e:
         logger.error(f"Ошибка при обработке категории: {e}")
-        await callback.message.edit_text("Произошла ошибка при обработке категории.")
+        await callback.message.edit_text(
+            "Произошла ошибка при обработке категории.",
+            reply_markup=calendar_menu_keyboard()
+        )
         await callback.answer()
 
 
 @router.callback_query(lambda c: c.data.startswith("calendar_prev_") or c.data.startswith("calendar_next_"))
 async def handle_pagination(callback: CallbackQuery, state: FSMContext):
-    """Обработчик пагинации."""
+    """Обработчик пагинации с сохранением отфильтрованных событий."""
     user_id = callback.from_user.id
+    current_message_text = callback.message.text
+    current_reply_markup = callback.message.reply_markup
+
     try:
         data = await state.get_data()
-        category = data.get("category", "all")
-        current_page = int(callback.data.split("_")[-1])
+        filter_type = data.get("calendar_filter", "all")
+        filtered_events = data.get("filtered_events", [])
+        current_page = data.get("current_page", 1)
         total_pages = data.get("total_pages", 1)
 
-        action = callback.data.split("_")[1]  # prev или next
+        action = callback.data.split("_")[1]
         new_page = current_page - 1 if action == "prev" else current_page + 1
 
         if new_page < 1 or new_page > total_pages:
             await callback.answer("Достигнут предел страниц.")
             return
 
-        all_events = get_sample_events()  # Получаем события из events_data.py
+        if not filtered_events:
+            portfolio_only = filter_type == "portfolio"
+            event_type = None
+            if filter_type == "macro":
+                event_type = "macro"
+            elif filter_type == "dividends":
+                event_type = "dividends"
+            elif filter_type == "earnings":
+                event_type = "earnings"
+            elif filter_type == "press":
+                event_type = "press"
+            elif filter_type == "all":
+                event_type = None
+                portfolio_only = False
 
-        # Фильтруем события по категории
-        crypto_symbols = {"BTC", "ETH", "BNB", "XRP", "ADA", "SOL", "DOGE", "DOT", "LTC", "LINK"}
-        investment_symbols = {"AAPL", "MSFT", "AMZN", "GOOGL", "TSLA", "NVDA", "JPM", "GS", "V", "MA"}
+            filtered_events = await get_events(user_id=user_id, event_type=event_type, portfolio_only=portfolio_only)
+            if not filtered_events:
+                all_events = get_sample_events()
+                crypto_symbols = {"BTC", "ETH", "BNB", "XRP", "ADA", "SOL", "DOGE", "DOT", "LTC", "LINK"}
+                investment_symbols = {"AAPL", "MSFT", "AMZN", "GOOGL", "TSLA", "NVDA", "JPM", "GS", "V", "MA"}
 
-        if category == "crypto":
-            filtered_events = [e for e in all_events if
-                               e['symbol'] in crypto_symbols or (e['symbol'] == "-" and e['type'] in ["macro", "press"])]
-        elif category == "investments":
-            filtered_events = [e for e in all_events if
-                               e['symbol'] in investment_symbols or (e['symbol'] == "-" and e['type'] in ["macro", "earnings"])]
-        else:
-            filtered_events = all_events
+                if filter_type == "portfolio":
+                    portfolio = await get_portfolio(user_id)
+                    portfolio_symbols = {asset['symbol'] for asset in portfolio}
+                    filtered_events = [e for e in all_events if e['symbol'] in portfolio_symbols]
+                elif filter_type == "macro":
+                    filtered_events = [e for e in all_events if e['type'] == "macro"]
+                elif filter_type == "dividends":
+                    filtered_events = [e for e in all_events if e['type'] == "dividends"]
+                elif filter_type == "earnings":
+                    filtered_events = [e for e in all_events if e['type'] == "earnings"]
+                elif filter_type == "press":
+                    filtered_events = [e for e in all_events if e['type'] == "press"]
+                elif filter_type == "all":
+                    filtered_events = all_events
 
-        text, total_pages = format_events(filtered_events, page=new_page)
-        keyboard = get_pagination_keyboard(new_page, total_pages, category)
+            if not filtered_events:
+                new_text = f"Событий не найдено для фильтра: {filter_type}"
+                new_markup = calendar_menu_keyboard()
 
-        await callback.message.edit_text(
-            f"📅 Календарь событий ({'Криптовалюты' if category == 'crypto' else 'Инвестиции' if category == 'investments' else 'Все'}):\n\n{text}",
-            reply_markup=keyboard
-        )
+                if current_message_text != new_text or str(current_reply_markup) != str(new_markup):
+                    await callback.message.edit_text(
+                        new_text,
+                        reply_markup=new_markup
+                    )
+                await callback.answer()
+                logger.info(f"Пользователь {user_id} запросил пагинацию (пусто, фильтр: {filter_type}).")
+                return
+
+            await state.update_data(filtered_events=filtered_events)
+
+        formatted_events, total_pages = format_events(filtered_events, page=new_page)
+        new_markup = pagination_keyboard(current_page=new_page, total_pages=total_pages, prefix="calendar")
+
+        if current_message_text != formatted_events or str(current_reply_markup) != str(new_markup):
+            await callback.message.edit_text(
+                formatted_events,
+                reply_markup=new_markup
+            )
         await state.update_data(current_page=new_page, total_pages=total_pages)
         await callback.answer()
-        logger.info(f"Пользователь {user_id} перешел на страницу календаря {new_page} (категория: {category}).")
+        logger.info(f"Пользователь {user_id} перешел на страницу календаря {new_page} (фильтр: {filter_type}).")
     except Exception as e:
         logger.error(f"Ошибка при пагинации: {e}")
-        await callback.message.edit_text("Произошла ошибка при пагинации.")
+        error_text = "Произошла ошибка при пагинации."
+        if current_message_text != error_text:
+            await callback.message.edit_text(
+                error_text,
+                reply_markup=calendar_menu_keyboard()
+            )
         await callback.answer()
 
 
 def format_events(events, page=1, per_page=5):
-    """Форматирует список событий для отображения."""
+    """Форматирует список событий для отображения с учетом дат."""
+    if not events:
+        return "Событий не найдено.", 0
+
     total_events = len(events)
     total_pages = (total_events + per_page - 1) // per_page
 
@@ -1274,17 +1412,27 @@ def format_events(events, page=1, per_page=5):
     page_events = events[start_idx:end_idx]
 
     formatted = f"📅 *Календарь событий* (страница {page}/{total_pages}):\n\n"
-    for event in page_events:
-        event_type = EVENT_TYPES.get(event['type'], 'Неизвестный тип')
-        formatted += (
-            f"📆 {event['event_date'].split()[0]}\n"
-            f"🔖 {event['title']}\n"
-            f"📝 {event['description']}\n"
-            f"📌 Тип: {event_type}\n"
-            f"💹 Символ: {event['symbol']}\n\n"
-        )
+    current_date = None
 
-    if total_events == 0:
-        formatted = "Событий не найдено."
+    for event in page_events:
+        try:
+            event_date = datetime.strptime(event['event_date'], "%Y-%m-%d %H:%M:%S")
+            date_str = event_date.strftime("%Y-%m-%d")
+
+            if date_str != current_date:
+                formatted += f"\n📅 *{date_str}*\n"
+                current_date = date_str
+
+            event_type = EVENT_TYPES.get(event['type'], 'Неизвестный тип')
+            formatted += (
+                f"🔖 {event['title']}\n"
+                f"📝 {event['description']}\n"
+                f"📌 Тип: {event_type}\n"
+                f"💹 Символ: {event['symbol']}\n"
+                f"{'-' * 30}\n"
+            )
+        except ValueError as e:
+            logger.error(f"Ошибка при обработке даты события {event['event_date']}: {e}")
+            continue
 
     return formatted, total_pages
