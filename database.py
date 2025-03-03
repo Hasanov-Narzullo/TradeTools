@@ -3,6 +3,9 @@ from config import settings
 from loguru import logger
 from datetime import datetime
 
+from events_data import get_sample_events
+
+
 async def init_db():
     """Инициализация базы данных и создание таблиц."""
     try:

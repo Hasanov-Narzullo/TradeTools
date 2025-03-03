@@ -921,7 +921,7 @@ async def handle_menu_command(callback: CallbackQuery, state: FSMContext):
 async def handle_alerts_menu(callback: CallbackQuery):
     """Обработчик кнопки 'Алерты' в главном меню."""
     await callback.message.answer("Выберите действие с алертами:", reply_markup=alerts_menu_keyboard())
-    await callback.answer()
+    #await callback.answer()
     logger.info(f"Пользователь {callback.from_user.id} открыл меню алертов.")
 
 @router.callback_query(F.data == "current_alerts")
