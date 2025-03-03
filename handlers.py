@@ -27,8 +27,8 @@ from aiogram.exceptions import TelegramAPIError
 router = Router()
 CHANNEL_ID = "@offensivepoltergeist"
 
+# Проверяет, подписан ли пользователь на канал.
 async def check_subscription(user_id: int) -> bool:
-    """Проверяет, подписан ли пользователь на канал."""
     try:
         member = await bot.get_chat_member(chat_id=CHANNEL_ID, user_id=user_id)
         return member.status in ['member', 'administrator', 'creator']
@@ -36,10 +36,9 @@ async def check_subscription(user_id: int) -> bool:
         logger.error(f"Ошибка при проверке подписки для пользователя {user_id}: {e}")
         return False
 
-
+# Обработчик команды /start с проверкой подписки.
 @router.message(Command("start"))
 async def cmd_start(message: Message):
-    """Обработчик команды /start с проверкой подписки."""
     user_id = message.from_user.id
     is_subscribed = await check_subscription(user_id)
 
@@ -120,17 +119,17 @@ async def cmd_quotes(message: Message, state: FSMContext):
     await state.set_state(PortfolioState.selecting_asset_type)
     logger.info(f"Пользователь {message.from_user.id} запросил котировки.")
 
+# Обработчик выбора типа актива для котировок.
 @router.callback_query(PortfolioState.selecting_asset_type)
 async def select_asset_type(callback: CallbackQuery, state: FSMContext):
-    """Обработчик выбора типа актива для котировок."""
     await state.update_data(asset_type=callback.data)
     await callback.message.answer("Введите символ актива (например, AAPL или BTC/USDT):")
     await state.set_state(PortfolioState.selecting_symbol)
     await callback.answer()
 
+# Обработчик ввода символа для получения котировок.
 @router.message(PortfolioState.selecting_symbol)
 async def get_quote(message: Message, state: FSMContext):
-    """Обработчик ввода символа для получения котировок."""
     symbol = message.text.strip().upper()
     data = await state.get_data()
     asset_type = data["asset_type"]
@@ -174,9 +173,9 @@ async def get_quote(message: Message, state: FSMContext):
     await state.clear()
     logger.info(f"Пользователь {message.from_user.id} запросил цену {symbol} ({asset_type}).")
 
+# Обработчик команды /portfolio для просмотра портфеля.
 @router.message(Command("portfolio"))
 async def cmd_portfolio(message: Message):
-    """Обработчик команды /portfolio для просмотра портфеля."""
     if not await check_subscription_middleware(message):
         return
     portfolio = await get_portfolio(message.from_user.id)
@@ -222,9 +221,9 @@ async def cmd_add_to_portfolio(message: Message, state: FSMContext):
     await state.set_state(PortfolioState.adding_asset_type)
     logger.info(f"Пользователь {message.from_user.id} начал добавление актива в портфель.")
 
+# Обработчик выбора типа актива для добавления в портфель.
 @router.callback_query(PortfolioState.adding_asset_type)
 async def add_asset_type(callback: CallbackQuery, state: FSMContext):
-    """Обработчик выбора типа актива для добавления в портфель."""
     await state.update_data(asset_type=callback.data)
     await callback.message.answer("Введите символ актива (например, AAPL или BTC/USDT):")
     await state.set_state(PortfolioState.adding_symbol)
@@ -261,9 +260,9 @@ async def get_quote(message: Message, state: FSMContext):
         )
     await state.clear()
 
+# Обработчик ввода символа актива для добавления в портфель.
 @router.message(PortfolioState.adding_symbol)
 async def add_symbol(message: Message, state: FSMContext):
-    """Обработчик ввода символа актива для добавления в портфель."""
     user_id = message.from_user.id
     symbol = message.text.strip().upper()
     data = await state.get_data()
@@ -312,9 +311,9 @@ async def add_symbol(message: Message, state: FSMContext):
     await state.set_state(PortfolioState.adding_amount)
     logger.info(f"Пользователь {user_id} ввел символ {symbol} для добавления в портфель.")
 
+# Обработчик ввода количества актива.
 @router.message(PortfolioState.adding_amount)
 async def add_amount(message: Message, state: FSMContext):
-    """Обработчик ввода количества актива."""
     user_id = message.from_user.id
     try:
         amount = float(message.text)
@@ -328,9 +327,9 @@ async def add_amount(message: Message, state: FSMContext):
         await message.answer("Пожалуйста, введите число.")
     logger.info(f"Пользователь {user_id} ввел количество актива: {message.text}")
 
+# Обработчик ввода цены покупки.
 @router.message(PortfolioState.adding_price)
 async def add_price(message: Message, state: FSMContext):
-    """Обработчик ввода цены покупки."""
     user_id = message.from_user.id
     try:
         price = float(message.text)
@@ -367,17 +366,17 @@ async def cmd_set_alert(message: Message, state: FSMContext):
     await state.set_state(AlertState.selecting_asset_type)
     logger.info(f"Пользователь {message.from_user.id} начал настройку алерта.")
 
+# Обработчик выбора типа актива для алерта.
 @router.callback_query(AlertState.selecting_asset_type)
 async def select_alert_asset_type(callback: CallbackQuery, state: FSMContext):
-    """Обработчик выбора типа актива для алерта."""
     await state.update_data(asset_type=callback.data)
     await callback.message.answer("Введите символ актива (например, AAPL или BTC/USDT):")
     await state.set_state(AlertState.selecting_symbol)
     await callback.answer()
 
+# Обработчик ввода символа для алерта.
 @router.message(AlertState.selecting_symbol)
 async def select_alert_symbol(message: Message, state: FSMContext):
-    """Обработчик ввода символа для алерта."""
     user_id = message.from_user.id
     symbol = message.text.strip().upper()
     data = await state.get_data()
@@ -427,9 +426,9 @@ async def select_alert_symbol(message: Message, state: FSMContext):
     await state.set_state(AlertState.selecting_price)
     logger.info(f"Пользователь {user_id} ввел символ {symbol} для алерта.")
 
+# Обработчик ввода целевой цены для алерта.
 @router.message(AlertState.selecting_price)
 async def select_alert_price(message: Message, state: FSMContext):
-    """Обработчик ввода целевой цены для алерта."""
     user_id = message.from_user.id
     try:
         target_price = float(message.text)
@@ -443,9 +442,9 @@ async def select_alert_price(message: Message, state: FSMContext):
         await message.answer("Пожалуйста, введите число.", reply_markup=main_menu())
     logger.info(f"Пользователь {user_id} ввел целевую цену: {message.text}")
 
+# Обработчик выбора условия алерта (above или below).
 @router.callback_query(AlertState.selecting_condition, F.data.in_({"above", "below"}))
 async def select_alert_condition(callback: CallbackQuery, state: FSMContext):
-    """Обработчик выбора условия алерта (above или below)."""
     condition = callback.data
     data = await state.get_data()
     symbol = data["symbol"]
@@ -474,9 +473,9 @@ async def show_calendar(message: Message, state: FSMContext):
     await state.set_state(CalendarStates.viewing_calendar)
     logger.info(f"Пользователь {message.from_user.id} запросил календарь событий.")
 
+# Обработчик команды /remove_from_portfolio для удаления актива из портфеля.
 @router.message(Command("remove_from_portfolio"))
 async def cmd_remove_from_portfolio(message: Message, state: FSMContext):
-    """Обработчик команды /remove_from_portfolio для удаления актива из портфеля."""
     user_id = message.from_user.id
     portfolio = await get_portfolio(user_id)
 
@@ -496,9 +495,9 @@ async def cmd_remove_from_portfolio(message: Message, state: FSMContext):
     await state.set_state(PortfolioState.removing_symbol)
     logger.info(f"Пользователь {user_id} начал удаление актива из портфеля.")
 
+# Обработчик ввода символа актива для удаления из портфеля.
 @router.message(PortfolioState.removing_symbol)
 async def remove_symbol_handler(message: Message, state: FSMContext):
-    """Обработчик ввода символа актива для удаления из портфеля."""
     user_id = message.from_user.id
     symbol = message.text.strip().upper()
 
@@ -532,9 +531,9 @@ async def remove_symbol_handler(message: Message, state: FSMContext):
     finally:
         await state.clear()
 
+# Обработчик команды /market для просмотра текущих рыночных цен.
 @router.message(Command("market"))
 async def cmd_market(message: Message):
-    """Обработчик команды /market для просмотра текущих рыночных цен."""
     if not await check_subscription_middleware(message):
         return
     user_id = message.from_user.id
@@ -568,8 +567,8 @@ async def cmd_market(message: Message):
     await message.answer(formatted_prices)
     logger.info(f"Пользователь {user_id} запросил рыночные цены.")
 
+# Регистрация всех хэндлеров.
 def register_handlers(dp: Router):
-    """Регистрация всех хэндлеров."""
     dp.include_router(router)
 
 @router.message(Command("cancel"))
@@ -582,9 +581,9 @@ async def cmd_cancel(message: Message, state: FSMContext):
     await message.answer("Операция отменена.")
     logger.info(f"Пользователь {message.from_user.id} отменил операцию.")
 
+# Обработчик команды /alerts для просмотра установленных алертов.
 @router.message(Command("alerts"))
 async def cmd_alerts(message: Message):
-    """Обработчик команды /alerts для просмотра установленных алертов."""
     if not await check_subscription_middleware(message):
         return
     user_id = message.from_user.id
@@ -602,9 +601,9 @@ async def cmd_alerts(message: Message):
     await message.answer(formatted_alerts)
     logger.info(f"Пользователь {user_id} запросил список алертов.")
 
+# Обработчик команды /remove_alert для удаления алерта.
 @router.message(Command("remove_alert"))
 async def cmd_remove_alert(message: Message, state: FSMContext):
-    """Обработчик команды /remove_alert для удаления алерта."""
     user_id = message.from_user.id
     alerts = await get_alerts(user_id)
 
@@ -621,9 +620,9 @@ async def cmd_remove_alert(message: Message, state: FSMContext):
     )
     await state.set_state(AlertState.removing_alert)
 
+# Обработчик ввода ID алерта для удаления.
 @router.message(AlertState.removing_alert)
 async def remove_alert_handler(message: Message, state: FSMContext):
-    """Обработчик ввода ID алерта для удаления."""
     user_id = message.from_user.id
     try:
         alert_id = int(message.text)
@@ -648,24 +647,24 @@ async def remove_alert_handler(message: Message, state: FSMContext):
     finally:
         await state.clear()
 
+# Обработчик кнопки 'Котировки' в главном меню.
 @router.callback_query(F.data == "quotes_menu")
 async def handle_quotes_menu(callback: CallbackQuery, state: FSMContext):
-    """Обработчик кнопки 'Котировки' в главном меню."""
     await callback.message.answer("Выберите действие с котировками:", reply_markup=quotes_menu_keyboard())
     await callback.answer()
     logger.info(f"Пользователь {callback.from_user.id} открыл меню котировок.")
 
+# Обработчик кнопки 'Запросить котировку'.
 @router.callback_query(F.data == "quotes")
 async def handle_quotes(callback: CallbackQuery, state: FSMContext):
-    """Обработчик кнопки 'Запросить котировку'."""
     await callback.message.answer("Выберите тип актива:", reply_markup=asset_type_keyboard())
     await state.set_state(PortfolioState.selecting_asset_type)
     await callback.answer()
     logger.info(f"Пользователь {callback.from_user.id} запросил котировки.")
 
+# Обработчик кнопки 'Портфель'.
 @router.callback_query(F.data == "portfolio")
 async def handle_portfolio(callback: CallbackQuery, state: FSMContext):
-    """Обработчик кнопки 'Портфель'."""
     portfolio = await get_portfolio(callback.from_user.id)
     if not portfolio:
         await callback.message.answer(
@@ -704,25 +703,25 @@ async def handle_portfolio(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
     logger.info(f"Пользователь {callback.from_user.id} запросил портфель (страница 1).")
 
+# Обработчик кнопки 'Добавить актив'.
 @router.callback_query(F.data == "add_to_portfolio")
 async def handle_add_to_portfolio(callback: CallbackQuery, state: FSMContext):
-    """Обработчик кнопки 'Добавить актив'."""
     await callback.message.answer("Выберите тип актива:", reply_markup=asset_type_keyboard())
     await state.set_state(PortfolioState.adding_asset_type)
     await callback.answer()
     logger.info(f"Пользователь {callback.from_user.id} начал добавление актива в портфель.")
 
+# Обработчик кнопки 'Установить алерт'.
 @router.callback_query(F.data == "set_alert")
 async def handle_set_alert(callback: CallbackQuery, state: FSMContext):
-    """Обработчик кнопки 'Установить алерт'."""
     await callback.message.answer("Выберите тип актива:", reply_markup=asset_type_keyboard())
     await state.set_state(AlertState.selecting_asset_type)
     await callback.answer()
     logger.info(f"Пользователь {callback.from_user.id} начал установку алерта.")
 
+# Обработчик кнопки 'Календарь' в главном меню.
 @router.callback_query(F.data == "calendar")
 async def handle_calendar_menu(callback: CallbackQuery, state: FSMContext):
-    """Обработчик кнопки 'Календарь' в главном меню."""
     user_id = callback.from_user.id
     try:
         all_events = get_sample_events()  # Получаем все события
@@ -751,9 +750,9 @@ async def handle_calendar_menu(callback: CallbackQuery, state: FSMContext):
         )
         await callback.answer()
 
+# Обработчик кнопки 'Помощь'.
 @router.callback_query(F.data == "help")
 async def handle_help(callback: CallbackQuery):
-    """Обработчик кнопки 'Помощь'."""
     help_text = """
 📋 *Список доступных действий:*
 
@@ -774,26 +773,26 @@ async def handle_help(callback: CallbackQuery):
     await callback.answer()
     logger.info(f"Пользователь {callback.from_user.id} запросил помощь.")
 
+# Обработчик кнопки 'Рынок' для показа обзора рынка.
 @router.callback_query(F.data == "market")
 async def handle_market_overview(callback: CallbackQuery):
-    """Обработчик кнопки 'Рынок' для показа обзора рынка."""
     market_data = await get_market_data()
     formatted_market = format_market_overview(market_data)
     await callback.message.answer(formatted_market, reply_markup=main_menu())
     await callback.answer()
     logger.info(f"Пользователь {callback.from_user.id} запросил обзор рынка.")
 
+# Обработчик кнопки 'Удалить актив'.
 @router.callback_query(F.data == "remove_asset")
 async def handle_remove_asset_prompt(callback: CallbackQuery, state: FSMContext):
-    """Обработчик кнопки 'Удалить актив'."""
     await callback.message.answer("Введите символ актива, который хотите удалить (например, AAPL или BTC/USDT):")
     await state.set_state(PortfolioState.removing_symbol)
     await callback.answer()
     logger.info(f"Пользователь {callback.from_user.id} начал удаление актива.")
 
+# Обработчик кнопки 'Алерты'.
 @router.callback_query(F.data == "alerts")
 async def handle_alerts(callback: CallbackQuery):
-    """Обработчик кнопки 'Алерты'."""
     alerts = await get_alerts(callback.from_user.id)
     if not alerts:
         await callback.message.answer(
@@ -814,17 +813,17 @@ async def handle_alerts(callback: CallbackQuery):
     await callback.answer()
     logger.info(f"Пользователь {callback.from_user.id} запросил алерты.")
 
+# Обработчик кнопки 'Удалить алерт'.
 @router.callback_query(F.data == "remove_alert")
 async def handle_remove_alert_prompt(callback: CallbackQuery, state: FSMContext):
-    """Обработчик кнопки 'Удалить алерт'."""
     await callback.message.answer("Введите ID алерта, который хотите удалить:")
     await state.set_state(AlertState.removing_alert)
     await callback.answer()
     logger.info(f"Пользователь {callback.from_user.id} начал удаление алерта.")
 
+# Обработчик подтверждения установки алерта.
 @router.callback_query(F.data == "confirm_alert")
 async def confirm_alert(callback: CallbackQuery, state: FSMContext):
-    """Обработчик подтверждения установки алерта."""
     user_id = callback.from_user.id
     data = await state.get_data()
     symbol = data.get("symbol")
@@ -848,17 +847,17 @@ async def confirm_alert(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
     logger.info(f"Пользователь {user_id} установил алерт для {symbol}.")
 
+# Обработчик кнопки 'Отмена'.
 @router.callback_query(F.data == "cancel")
 async def handle_cancel(callback: CallbackQuery, state: FSMContext):
-    """Обработчик кнопки 'Отмена'."""
     await state.clear()
     await callback.message.answer("Действие отменено.", reply_markup=main_menu())
     await callback.answer()
     logger.info(f"Пользователь {callback.from_user.id} отменил действие.")
 
+# Обработчик ввода символа для удаления актива.
 @router.message(PortfolioState.removing_symbol)
 async def handle_remove_asset_symbol(message: Message, state: FSMContext):
-    """Обработчик ввода символа для удаления актива."""
     user_id = message.from_user.id
     symbol = message.text.strip().upper()
 
@@ -888,9 +887,9 @@ async def handle_remove_asset_symbol(message: Message, state: FSMContext):
     )
     logger.info(f"Пользователь {user_id} запросил подтверждение удаления актива {symbol}")
 
+# Обработчик подтверждения удаления актива.
 @router.callback_query(F.data.startswith("confirm_remove_"))
 async def confirm_remove_asset(callback: CallbackQuery, state: FSMContext):
-    """Обработчик подтверждения удаления актива."""
     user_id = callback.from_user.id
     symbol = callback.data.replace("confirm_remove_", "")
     await remove_from_portfolio(user_id, symbol)
@@ -917,16 +916,16 @@ async def handle_menu_command(callback: CallbackQuery, state: FSMContext):
         logger.info(f"Пользователь {user_id} попытался использовать callback без подписки.")
         return
 
+# Обработчик кнопки 'Алерты' в главном меню.
 @router.callback_query(F.data == "alerts_menu")
 async def handle_alerts_menu(callback: CallbackQuery):
-    """Обработчик кнопки 'Алерты' в главном меню."""
     await callback.message.answer("Выберите действие с алертами:", reply_markup=alerts_menu_keyboard())
-    #await callback.answer()
+    await callback.answer()
     logger.info(f"Пользователь {callback.from_user.id} открыл меню алертов.")
 
+# Обработчик кнопки 'Текущие алерты'.
 @router.callback_query(F.data == "current_alerts")
 async def handle_current_alerts(callback: CallbackQuery, state: FSMContext):
-    """Обработчик кнопки 'Текущие алерты'."""
     alerts = await get_alerts(callback.from_user.id)
     if not alerts:
         await callback.message.answer(
@@ -945,9 +944,9 @@ async def handle_current_alerts(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
     logger.info(f"Пользователь {callback.from_user.id} запросил текущие алерты (страница 1).")
 
+# Обработчик ввода ID алерта для удаления.
 @router.message(AlertState.removing_alert)
 async def handle_remove_alert_id(message: Message, state: FSMContext):
-    """Обработчик ввода ID алерта для удаления."""
     user_id = message.from_user.id
     try:
         alert_id = int(message.text)
@@ -969,17 +968,17 @@ async def handle_remove_alert_id(message: Message, state: FSMContext):
         await message.answer("Пожалуйста, введите числовой ID алерта.", reply_markup=alerts_menu_keyboard())
         logger.warning(f"Пользователь {user_id} ввел некорректный ID алерта: {message.text}")
 
+# Обработчик кнопки 'Назад' в меню алертов.
 @router.callback_query(F.data == "main_menu")
 async def handle_main_menu(callback: CallbackQuery, state: FSMContext):
-    """Обработчик кнопки 'Назад' в меню алертов."""
     await state.clear()
     await callback.message.answer("Главное меню:", reply_markup=main_menu())
     await callback.answer()
     logger.info(f"Пользователь {callback.from_user.id} вернулся в главное меню.")
 
+# Обработчик кнопки 'Цены портфеля'.
 @router.callback_query(F.data == "portfolio_prices")
 async def handle_portfolio_prices(callback: CallbackQuery):
-    """Обработчик кнопки 'Цены портфеля'."""
     portfolio = await get_portfolio(callback.from_user.id)
     if not portfolio:
         await callback.message.answer(
@@ -1011,9 +1010,9 @@ async def handle_portfolio_prices(callback: CallbackQuery):
     await callback.answer()
     logger.info(f"Пользователь {callback.from_user.id} запросил цены портфеля.")
 
+# Обработчик навигации по страницам портфеля.
 @router.callback_query(F.data.startswith("portfolio_page_"))
 async def handle_portfolio_page(callback: CallbackQuery, state: FSMContext):
-    """Обработчик навигации по страницам портфеля."""
     page = int(callback.data.replace("portfolio_page_", ""))
     portfolio = await get_portfolio(callback.from_user.id)
     if not portfolio:
@@ -1053,9 +1052,9 @@ async def handle_portfolio_page(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
     logger.info(f"Пользователь {callback.from_user.id} перешел на страницу портфеля {page}.")
 
+# Обработчик навигации по страницам алертов.
 @router.callback_query(F.data.startswith("alerts_page_"))
 async def handle_alerts_page(callback: CallbackQuery, state: FSMContext):
-    """Обработчик навигации по страницам алертов."""
     page = int(callback.data.replace("alerts_page_", ""))
     alerts = await get_alerts(callback.from_user.id)
     if not alerts:
@@ -1075,10 +1074,9 @@ async def handle_alerts_page(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
     logger.info(f"Пользователь {callback.from_user.id} перешел на страницу алертов {page}.")
 
-
+# Обработчик фильтрации событий.
 @router.callback_query(F.data.startswith("calendar_"))
 async def handle_calendar_filter(callback: CallbackQuery, state: FSMContext):
-    """Обработчик фильтрации событий."""
     user_id = callback.from_user.id
     current_message_text = callback.message.text
     current_reply_markup = callback.message.reply_markup
@@ -1174,10 +1172,9 @@ async def handle_calendar_filter(callback: CallbackQuery, state: FSMContext):
             )
         await callback.answer()
 
-
+# Обработчик навигации по страницам календаря.
 @router.callback_query(F.data.startswith("calendar_page_"))
 async def handle_calendar_page(callback: CallbackQuery, state: FSMContext):
-    """Обработчик навигации по страницам календаря."""
     page = int(callback.data.replace("calendar_page_", ""))
     user_id = callback.from_user.id
     data = await state.get_data()
@@ -1214,9 +1211,9 @@ async def handle_calendar_page(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
     logger.info(f"Пользователь {user_id} перешел на страницу календаря {page} (фильтр: {filter_type}).")
 
+# Загружает пример событий в базу данных.
 @router.message(Command("load_sample_events"))
 async def load_sample_events_handler(message: types.Message):
-    """Загружает пример событий в базу данных."""
     try:
         await load_sample_events()
         await message.answer("Пример событий успешно загружен. Используйте /calendar для просмотра.")
@@ -1224,10 +1221,9 @@ async def load_sample_events_handler(message: types.Message):
         logger.error(f"Ошибка при загрузке примеров событий: {e}")
         await message.answer("Произошла ошибка при загрузке примеров событий.")
 
-
+# Показывает выбор категории событий.
 @router.message(Command("calendar"))
 async def show_calendar(message: Message, state: FSMContext):
-    """Показывает выбор категории событий."""
     user_id = message.from_user.id
     try:
         keyboard = get_category_keyboard()
@@ -1238,10 +1234,9 @@ async def show_calendar(message: Message, state: FSMContext):
         logger.error(f"Ошибка при отображении календаря: {e}")
         await message.answer("Произошла ошибка при отображении календаря.")
 
-
+# Обработчик выбора категории с корректной сортировкой по дате.
 @router.callback_query(lambda c: c.data.startswith("calendar_category_"))
 async def handle_category_selection(callback: CallbackQuery, state: FSMContext):
-    """Обработчик выбора категории с корректной сортировкой по дате."""
     user_id = callback.from_user.id
     try:
         category = callback.data.split("_")[-1]
@@ -1304,10 +1299,9 @@ async def handle_category_selection(callback: CallbackQuery, state: FSMContext):
         )
         await callback.answer()
 
-
+# Обработчик пагинации с сохранением отфильтрованных событий.
 @router.callback_query(lambda c: c.data.startswith("calendar_prev_") or c.data.startswith("calendar_next_"))
 async def handle_pagination(callback: CallbackQuery, state: FSMContext):
-    """Обработчик пагинации с сохранением отфильтрованных событий."""
     user_id = callback.from_user.id
     current_message_text = callback.message.text
     current_reply_markup = callback.message.reply_markup
@@ -1398,9 +1392,8 @@ async def handle_pagination(callback: CallbackQuery, state: FSMContext):
             )
         await callback.answer()
 
-
+# Форматирует список событий для отображения с учетом дат.
 def format_events(events, page=1, per_page=5):
-    """Форматирует список событий для отображения с учетом дат."""
     if not events:
         return "Событий не найдено.", 0
 

@@ -5,11 +5,11 @@ from aiogram import Bot
 from database import get_alerts, remove_alert
 from api import fetch_asset_price_with_retry
 
+"""Фоновая задача для проверки алертов."""
 async def check_alerts(bot: Bot):
-    """Фоновая задача для проверки алертов."""
     while True:
+        # Получаем все алерты из базы данных
         try:
-            # Получаем все алерты из базы данных
             alerts = await get_alerts()  # Предполагается, что get_alerts() без user_id возвращает все алерты
             for alert in alerts:
                 alert_id, user_id, asset_type, symbol, target_price, condition, created_at = alert

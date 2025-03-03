@@ -14,8 +14,8 @@ import platform
 if sys.platform == "win32":
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
+# Основная функция для запуска бота.
 async def main():
-    """Основная функция для запуска бота."""
     # Настройка бота
     setup_bot()
 

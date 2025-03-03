@@ -336,7 +336,7 @@ SAMPLE_EVENTS = {
     ]
 }
 
+# Возвращает пример событий, отсортированных по дате.
 def get_sample_events():
-    """Возвращает пример событий, отсортированных по дате."""
     all_events = SAMPLE_EVENTS["crypto"] + SAMPLE_EVENTS["investments"]
     return sorted(all_events, key=lambda x: datetime.strptime(x["event_date"], "%Y-%m-%d %H:%M:%S"))

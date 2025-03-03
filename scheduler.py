@@ -10,8 +10,8 @@ from datetime import datetime, timedelta
 from utils import format_price
 
 
+# Проверка алертов и отправка уведомлений.
 async def check_alerts():
-    """Проверка алертов и отправка уведомлений."""
     logger.info("Проверка алертов...")
     async with aiosqlite.connect(settings.db.DB_PATH) as db:
         cursor = await db.execute("SELECT * FROM alerts")
@@ -35,13 +35,13 @@ async def check_alerts():
             logger.info(f"Алерт {alert_id} сработал и удален.")
 
 
+# Обновление котировок (можно расширить для сохранения в базу).
 async def update_quotes():
-    """Обновление котировок (можно расширить для сохранения в базу)."""
     logger.info("Обновление котировок...")
 
 
+# Обновление календаря событий с использованием EODHD и других источников.
 async def update_calendar():
-    """Обновление календаря событий с использованием EODHD и других источников."""
     logger.info("Начало обновления календаря событий...")
 
     try:
@@ -115,8 +115,8 @@ async def update_calendar():
     except Exception as e:
         logger.error(f"Ошибка при обновлении календаря событий: {e}")
 
+# Настройка планировщика задач.
 def setup_scheduler(scheduler: AsyncIOScheduler):
-    """Настройка планировщика задач."""
     scheduler.add_job(check_alerts, "interval", minutes=5)  # Проверка алертов каждые 5 минут
     scheduler.add_job(update_quotes, "interval", minutes=10)  # Обновление котировок каждые 10 минут
     scheduler.add_job(update_calendar, "interval", hours=2.5)  # Обновление календаря каждые 5 часов

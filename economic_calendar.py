@@ -36,8 +36,8 @@ class Investing:
         }
         self.result = []
 
+    # Асинхронный парсинг экономического календаря с Investing.com с использованием Playwright.
     async def news(self):
-        """Асинхронный парсинг экономического календаря с Investing.com с использованием Playwright."""
         events = []
         try:
             async with async_playwright() as p:

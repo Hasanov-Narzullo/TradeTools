@@ -1,7 +1,7 @@
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
 
+# Главное меню с обновленным callback_data для котировок.
 def main_menu() -> InlineKeyboardMarkup:
-    """Главное меню с обновленным callback_data для котировок."""
     return InlineKeyboardMarkup(inline_keyboard=[
         [
             InlineKeyboardButton(text="📈 Котировки", callback_data="quotes_menu"),
@@ -21,8 +21,8 @@ def main_menu() -> InlineKeyboardMarkup:
         ]
     ])
 
+# Клавиатура для меню котировок.
 def quotes_menu_keyboard() -> InlineKeyboardMarkup:
-    """Клавиатура для меню котировок."""
     return InlineKeyboardMarkup(inline_keyboard=[
         [
             InlineKeyboardButton(text="🔍 Запросить котировку", callback_data="quotes"),
@@ -33,15 +33,15 @@ def quotes_menu_keyboard() -> InlineKeyboardMarkup:
         ]
     ])
 
+# Создание клавиатуры для выбора типа актива (акции или криптовалюты).
 def asset_type_keyboard() -> InlineKeyboardMarkup:
-    """Создание клавиатуры для выбора типа актива (акции или криптовалюты)."""
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="Акции", callback_data="stock")],
         [InlineKeyboardButton(text="Криптовалюты", callback_data="crypto")]
     ])
 
+# Клавиатура для выбора условия алерта.
 def alert_condition_keyboard() -> InlineKeyboardMarkup:
-    """Клавиатура для выбора условия алерта."""
     return InlineKeyboardMarkup(inline_keyboard=[
         [
             InlineKeyboardButton(text="Выше", callback_data="above"),
@@ -49,20 +49,20 @@ def alert_condition_keyboard() -> InlineKeyboardMarkup:
         ]
     ])
 
+# Создание клавиатуры для отмены действия.
 def cancel_keyboard() -> ReplyKeyboardMarkup:
-    """Создание клавиатуры для отмены действия."""
     return ReplyKeyboardMarkup(
         keyboard=[[KeyboardButton(text="Отмена")]],
         resize_keyboard=True,
         one_time_keyboard=True
     )
 
+# Клавиатура для действий с портфелем с пагинацией.
 def portfolio_actions_keyboard(current_page: int, total_pages: int) -> InlineKeyboardMarkup:
-    """Клавиатура для действий с портфелем с пагинацией."""
     return pagination_keyboard(current_page, total_pages, "portfolio")
 
+# Клавиатура для действий с алертом.
 def alert_actions_keyboard(alert_id: int) -> InlineKeyboardMarkup:
-    """Клавиатура для действий с алертом."""
     return InlineKeyboardMarkup(inline_keyboard=[
         [
             InlineKeyboardButton(text="🗑 Удалить", callback_data=f"remove_alert_{alert_id}"),
@@ -70,8 +70,8 @@ def alert_actions_keyboard(alert_id: int) -> InlineKeyboardMarkup:
         ]
     ])
 
+# Клавиатура для подтверждения установки алерта.
 def confirm_alert_keyboard(symbol: str, target_price: float, condition: str) -> InlineKeyboardMarkup:
-    """Клавиатура для подтверждения установки алерта."""
     return InlineKeyboardMarkup(inline_keyboard=[
         [
             InlineKeyboardButton(text="✅ Подтвердить", callback_data=f"confirm_alert_{symbol}_{target_price}_{condition}"),
@@ -79,8 +79,8 @@ def confirm_alert_keyboard(symbol: str, target_price: float, condition: str) -> 
         ]
     ])
 
+# Клавиатура для подтверждения удаления актива.
 def confirm_remove_asset_keyboard(symbol: str) -> InlineKeyboardMarkup:
-    """Клавиатура для подтверждения удаления актива."""
     return InlineKeyboardMarkup(inline_keyboard=[
         [
             InlineKeyboardButton(text="✅ Подтвердить", callback_data=f"confirm_remove_{symbol}"),
@@ -88,8 +88,8 @@ def confirm_remove_asset_keyboard(symbol: str) -> InlineKeyboardMarkup:
         ]
     ])
 
+# Клавиатура для меню алертов с пагинацией.
 def alerts_menu_keyboard(current_page: int = 1, total_pages: int = 1) -> InlineKeyboardMarkup:
-    """Клавиатура для меню алертов с пагинацией."""
     buttons = [
         [
             InlineKeyboardButton(text="📋 Текущие алерты", callback_data="current_alerts"),
@@ -110,11 +110,12 @@ def alerts_menu_keyboard(current_page: int = 1, total_pages: int = 1) -> InlineK
 
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
+
+"""
+Клавиатура для навигации по страницам.
+prefix: 'portfolio', 'alerts' или 'calendar' для определения типа данных.
+"""
 def pagination_keyboard(current_page: int, total_pages: int, prefix: str) -> InlineKeyboardMarkup:
-    """
-    Клавиатура для навигации по страницам.
-    prefix: 'portfolio', 'alerts' или 'calendar' для определения типа данных.
-    """
     buttons = []
     if current_page > 1:
         buttons.append(InlineKeyboardButton(text="⬅️ Предыдущая", callback_data=f"{prefix}_page_{current_page - 1}"))
@@ -127,8 +128,8 @@ def pagination_keyboard(current_page: int, total_pages: int, prefix: str) -> Inl
     ])
     return keyboard
 
+# Клавиатура для меню календаря событий.
 def calendar_menu_keyboard() -> InlineKeyboardMarkup:
-    """Клавиатура для меню календаря событий."""
     return InlineKeyboardMarkup(inline_keyboard=[
         [
             InlineKeyboardButton(text="📅 Все события", callback_data="calendar_all"),

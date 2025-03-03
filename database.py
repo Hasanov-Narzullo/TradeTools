@@ -5,12 +5,11 @@ from datetime import datetime
 
 from events_data import get_sample_events
 
-
+# Инициализация базы данных и создание таблиц.
 async def init_db():
-    """Инициализация базы данных и создание таблиц."""
     try:
+        # Проверяем текущую структуру таблицы
         async with aiosqlite.connect(settings.db.DB_PATH) as db:
-            # Проверяем текущую структуру таблицы
             cursor = await db.execute("PRAGMA table_info(events)")
             columns = [row[1] for row in await cursor.fetchall()]
 
@@ -72,8 +71,8 @@ async def init_db():
         raise
 
 # Функции для работы с портфелем
+# Добавление актива в портфель пользователя.
 async def add_to_portfolio(user_id: int, asset_type: str, symbol: str, amount: float, purchase_price: float):
-    """Добавление актива в портфель пользователя."""
     async with aiosqlite.connect(settings.db.DB_PATH) as db:
         try:
             await db.execute("""
@@ -86,8 +85,8 @@ async def add_to_portfolio(user_id: int, asset_type: str, symbol: str, amount: f
             logger.error(f"Ошибка при добавлении актива {symbol} для пользователя {user_id}: {e}")
             raise
 
+# Получает портфель пользователя из базы данных.
 async def get_portfolio(user_id: int):
-    """Получает портфель пользователя из базы данных."""
     async with aiosqlite.connect(settings.db.DB_PATH) as db:
         try:
             cursor = await db.execute(
@@ -114,8 +113,8 @@ async def get_portfolio(user_id: int):
             logger.error(f"Ошибка при получении портфеля пользователя {user_id}: {e}")
             raise
 
+# Удаление актива из портфеля пользователя.
 async def remove_from_portfolio(user_id: int, symbol: str):
-    """Удаление актива из портфеля пользователя."""
     async with aiosqlite.connect(settings.db.DB_PATH) as db:
         try:
             await db.execute("DELETE FROM portfolios WHERE user_id = ? AND symbol = ?", (user_id, symbol))
@@ -126,8 +125,8 @@ async def remove_from_portfolio(user_id: int, symbol: str):
             raise
 
 # Функции для работы с алертами
+# Добавление алерта для пользователя.
 async def add_alert(user_id: int, asset_type: str, symbol: str, target_price: float, condition: str):
-    """Добавление алерта для пользователя."""
     async with aiosqlite.connect(settings.db.DB_PATH) as db:
         try:
             await db.execute("""
@@ -140,8 +139,8 @@ async def add_alert(user_id: int, asset_type: str, symbol: str, target_price: fl
             logger.error(f"Ошибка при добавлении алерта для {symbol} пользователя {user_id}: {e}")
             raise
 
+# Получение алертов пользователя или всех алертов.
 async def get_alerts(user_id: int = None):
-    """Получение алертов пользователя или всех алертов."""
     async with aiosqlite.connect(settings.db.DB_PATH) as db:
         try:
             if user_id:
@@ -155,8 +154,8 @@ async def get_alerts(user_id: int = None):
             logger.error(f"Ошибка при получении алертов: {e}")
             raise
 
+# Удаление алерта по ID.
 async def remove_alert(alert_id: int):
-    """Удаление алерта по ID."""
     async with aiosqlite.connect(settings.db.DB_PATH) as db:
         try:
             await db.execute("DELETE FROM alerts WHERE id = ?", (alert_id,))
@@ -167,8 +166,8 @@ async def remove_alert(alert_id: int):
             raise
 
 # Функции для работы с событиями
+# Добавление события в базу данных.
 async def add_event(event_date: str, title: str, description: str, source: str, event_type: str, symbol: str = None):
-    """Добавление события в базу данных."""
     async with aiosqlite.connect(settings.db.DB_PATH) as db:
         try:
             # Проверяем, существует ли событие
@@ -192,8 +191,8 @@ async def add_event(event_date: str, title: str, description: str, source: str, 
             logger.error(f"Ошибка при добавлении события '{title}': {e}")
             raise
 
+# Получение событий с фильтрацией по типу и активам из портфеля.
 async def get_events(user_id: int = None, event_type: str = None, portfolio_only: bool = False) -> list:
-    """Получение событий с фильтрацией по типу и активам из портфеля."""
     query = "SELECT * FROM events WHERE 1=1"
     params = []
 
@@ -229,8 +228,8 @@ async def get_events(user_id: int = None, event_type: str = None, portfolio_only
         logger.error(f"Ошибка при получении событий: {e}")
         raise
 
+# Загружает пример событий в базу данных.
 async def load_sample_events():
-    """Загружает пример событий в базу данных."""
     events = get_sample_events()
     for event in events:
         try:
