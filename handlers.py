@@ -1,27 +1,23 @@
 from datetime import datetime
-from aiogram import Router, F
-from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
+
+from aiogram import Router, types, F
+from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton, ChatMemberUpdated
+from aiogram.filters import Command
+from aiogram.fsm.context import FSMContext
+from aiogram.exceptions import TelegramAPIError
 
 from bot import bot
+from loguru import logger
+from events_data import get_sample_events
+from states import PortfolioState, AlertState, CalendarStates
 from keyboards import main_menu, asset_type_keyboard, alert_condition_keyboard, alert_actions_keyboard, \
     portfolio_actions_keyboard, confirm_alert_keyboard, confirm_remove_asset_keyboard, alerts_menu_keyboard, \
     quotes_menu_keyboard, calendar_menu_keyboard, pagination_keyboard, get_category_keyboard, get_pagination_keyboard
-from states import PortfolioState, AlertState, CalendarStates
 from database import add_to_portfolio, get_portfolio, remove_from_portfolio, add_alert, get_alerts, remove_alert, \
     get_events, load_sample_events
 from api import get_stock_price, get_crypto_price, fetch_asset_price, get_stock_history, get_crypto_history, \
     get_stock_price_with_retry, get_market_data
-from utils import format_portfolio, format_alerts, format_events, format_market_prices, format_market_overview
-from aiogram import Router, types
-from aiogram.filters import Command
-from aiogram.fsm.context import FSMContext
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from database import get_events, load_sample_events
-from utils import format_events, EVENT_TYPES
-from loguru import logger
-from events_data import get_sample_events
-from aiogram.types import ChatMemberUpdated
-from aiogram.exceptions import TelegramAPIError
+from utils import format_portfolio, format_alerts, format_events, format_market_prices, format_market_overview, EVENT_TYPES
 
 
 router = Router()
