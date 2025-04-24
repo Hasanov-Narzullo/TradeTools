@@ -1,3 +1,4 @@
+# api
 import random
 import requests
 import yfinance as yf
@@ -197,6 +198,7 @@ async def fetch_asset_price_with_retry(symbol: str, asset_type: str, retries: in
             return price
         logger.warning(f"Попытка {attempt + 1} не удалась для {symbol} ({asset_type}). Повтор через {delay} секунд.")
         await asyncio.sleep(delay)
+    logger.error(f"Не удалось получить цену для {symbol} ({asset_type}) после {retries} попыток.")
     return None
 
 # Получение курса обмена валют через exchangerate-api.

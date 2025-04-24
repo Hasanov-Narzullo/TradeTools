@@ -1,3 +1,4 @@
+# database
 import aiosqlite
 from config import settings
 from loguru import logger
@@ -8,26 +9,32 @@ from events_data import get_sample_events
 # Инициализация базы данных и создание таблиц.
 async def init_db():
     try:
-        # Проверяем текущую структуру таблицы
         async with aiosqlite.connect(settings.db.DB_PATH) as db:
-            cursor = await db.execute("PRAGMA table_info(events)")
-            columns = [row[1] for row in await cursor.fetchall()]
-
-            # Создаем таблицу portfolios
             await db.execute("""
                 CREATE TABLE IF NOT EXISTS portfolios (
                     user_id INTEGER,
+                    sub_account_name TEXT NOT NULL DEFAULT 'Основной',
                     asset_type TEXT,
                     symbol TEXT,
                     amount REAL,
                     purchase_price REAL,
                     purchase_date TEXT,
-                    PRIMARY KEY (user_id, symbol)
+                    PRIMARY KEY (user_id, sub_account_name, symbol)
                 )
             """)
             logger.info("Таблица portfolios создана или уже существует.")
 
-            # Создаем таблицу alerts
+            # Проверка и добавление колонки sub_account_name, если ее нет
+            cursor = await db.execute("PRAGMA table_info(portfolios)")
+            columns = [column[1] for column in await cursor.fetchall()]
+            if 'sub_account_name' not in columns:
+                logger.warning("Колонка 'sub_account_name' отсутствует в таблице 'portfolios'. Добавляем...")
+                await db.execute("ALTER TABLE portfolios ADD COLUMN sub_account_name TEXT NOT NULL DEFAULT 'Основной'")
+                logger.info("Колонка 'sub_account_name' успешно добавлена.")
+            else:
+                logger.debug("Колонка 'sub_account_name' уже существует.")
+
+
             await db.execute("""
                 CREATE TABLE IF NOT EXISTS alerts (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -41,7 +48,6 @@ async def init_db():
             """)
             logger.info("Таблица alerts создана или уже существует.")
 
-            # Создаем таблицу events
             await db.execute("""
                 CREATE TABLE IF NOT EXISTS events (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -56,13 +62,13 @@ async def init_db():
             """)
             logger.info("Таблица events создана или уже существует.")
 
-            # Добавляем столбцы, если они отсутствуют
-            if "type" not in columns:
-                await db.execute("ALTER TABLE events ADD COLUMN type TEXT")
-                logger.info("Добавлен столбец 'type' в таблицу events.")
-            if "symbol" not in columns:
-                await db.execute("ALTER TABLE events ADD COLUMN symbol TEXT")
-                logger.info("Добавлен столбец 'symbol' в таблицу events.")
+            await db.execute("""
+                CREATE TABLE IF NOT EXISTS chat_settings (
+                    chat_id INTEGER PRIMARY KEY,
+                    allow_all_users BOOLEAN DEFAULT TRUE
+                )
+            """)
+            logger.info("Таблица chat_settings создана или уже существует.")
 
             await db.commit()
         logger.info("База данных успешно инициализирована.")
@@ -72,83 +78,139 @@ async def init_db():
 
 # Функции для работы с портфелем
 # Добавление актива в портфель пользователя.
-async def add_to_portfolio(user_id: int, asset_type: str, symbol: str, amount: float, purchase_price: float):
+async def add_to_portfolio(user_id: int, sub_account_name: str, asset_type: str, symbol: str, amount: float, purchase_price: float):
+    effective_sub_account_name = sub_account_name if sub_account_name else "Основной"
     async with aiosqlite.connect(settings.db.DB_PATH) as db:
         try:
             await db.execute("""
-                INSERT OR REPLACE INTO portfolios (user_id, asset_type, symbol, amount, purchase_price, purchase_date)
-                VALUES (?, ?, ?, ?, ?, ?)
-            """, (user_id, asset_type, symbol, amount, purchase_price, datetime.now().isoformat()))
+                INSERT OR REPLACE INTO portfolios (user_id, sub_account_name, asset_type, symbol, amount, purchase_price, purchase_date)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (user_id, effective_sub_account_name, asset_type, symbol, amount, purchase_price, datetime.now().isoformat()))
             await db.commit()
-            logger.info(f"Актив {symbol} добавлен в портфель пользователя {user_id}.")
+            logger.info(f"Актив {symbol} добавлен в портфель пользователя {user_id} (суб-счет: {effective_sub_account_name}).")
         except Exception as e:
-            logger.error(f"Ошибка при добавлении актива {symbol} для пользователя {user_id}: {e}")
+            logger.error(f"Ошибка при добавлении актива {symbol} для пользователя {user_id} (суб-счет: {effective_sub_account_name}): {e}")
             raise
 
 # Получает портфель пользователя из базы данных.
 async def get_portfolio(user_id: int):
+    portfolio_by_sub_account = {}
     async with aiosqlite.connect(settings.db.DB_PATH) as db:
         try:
             cursor = await db.execute(
-                "SELECT symbol, asset_type, amount, purchase_price FROM portfolios WHERE user_id = ?",
+                "SELECT sub_account_name, symbol, asset_type, amount, purchase_price FROM portfolios WHERE user_id = ? ORDER BY sub_account_name, symbol",
                 (user_id,)
             )
             rows = await cursor.fetchall()
-            result = []
+            if not rows:
+                logger.info(f"Портфель пользователя {user_id} пуст.")
+                return {}
+
             for row in rows:
                 try:
+                    sub_account = str(row[0])
                     portfolio_item = {
-                        'symbol': str(row[0]),        # symbol (строка)
-                        'asset_type': row[1],         # asset_type (строка)
-                        'amount': float(row[2]),      # amount (float)
-                        'purchase_price': float(row[3])  # purchase_price (float)
+                        'symbol': str(row[1]),
+                        'asset_type': row[2],
+                        'amount': float(row[3]),
+                        'purchase_price': float(row[4])
                     }
-                    result.append(portfolio_item)
+                    if sub_account not in portfolio_by_sub_account:
+                        portfolio_by_sub_account[sub_account] = []
+                    portfolio_by_sub_account[sub_account].append(portfolio_item)
                 except (ValueError, TypeError, IndexError) as e:
-                    logger.error(f"Ошибка при преобразовании данных актива {row[0]}: {e}")
+                    logger.error(f"Ошибка при преобразовании данных актива {row[1]} для суб-счета {row[0]}: {e}")
                     continue
-            logger.info(f"Получено {len(result)} активов из портфеля пользователя {user_id}")
-            return result
+            logger.info(f"Получен портфель для пользователя {user_id} с {len(portfolio_by_sub_account)} суб-счетами.")
+            return portfolio_by_sub_account
         except Exception as e:
             logger.error(f"Ошибка при получении портфеля пользователя {user_id}: {e}")
             raise
 
 # Удаление актива из портфеля пользователя.
-async def remove_from_portfolio(user_id: int, symbol: str):
+async def remove_from_portfolio(user_id: int, sub_account_name: str, symbol: str):
     async with aiosqlite.connect(settings.db.DB_PATH) as db:
         try:
-            await db.execute("DELETE FROM portfolios WHERE user_id = ? AND symbol = ?", (user_id, symbol))
+            await db.execute("DELETE FROM portfolios WHERE user_id = ? AND sub_account_name = ? AND symbol = ?", (user_id, sub_account_name, symbol))
             await db.commit()
-            logger.info(f"Актив {symbol} удален из портфеля пользователя {user_id}.")
+            logger.info(f"Актив {symbol} удален из суб-счета '{sub_account_name}' пользователя {user_id}.")
         except Exception as e:
-            logger.error(f"Ошибка при удалении актива {symbol} для пользователя {user_id}: {e}")
+            logger.error(f"Ошибка при удалении актива {symbol} из суб-счета '{sub_account_name}' для пользователя {user_id}: {e}")
+            raise
+
+async def get_sub_accounts(user_id: int) -> list[str]:
+    main_account_name = "Основной"
+    async with aiosqlite.connect(settings.db.DB_PATH) as db:
+        try:
+            cursor = await db.execute(
+                "SELECT DISTINCT sub_account_name FROM portfolios WHERE user_id = ? ORDER BY sub_account_name",
+                (user_id,)
+            )
+            rows = await cursor.fetchall()
+            sub_accounts = [row[0] for row in rows]
+            if main_account_name in sub_accounts:
+                sub_accounts.remove(main_account_name)
+                sub_accounts.insert(0, main_account_name)
+            else:
+                sub_accounts.insert(0, main_account_name)
+
+            logger.info(f"Получены суб-счета для пользователя {user_id}: {sub_accounts}")
+            return sub_accounts
+        except Exception as e:
+            logger.error(f"Ошибка при получении суб-счетов пользователя {user_id}: {e}")
+            return [main_account_name]
+
+async def delete_sub_account(user_id: int, sub_account_name: str):
+    main_account_name = "Основной"
+    if sub_account_name == main_account_name:
+        logger.warning(f"Попытка удаления основного суб-счета '{main_account_name}' пользователем {user_id}.")
+        raise ValueError(f"Нельзя удалить основной суб-счет '{main_account_name}'.")
+
+    async with aiosqlite.connect(settings.db.DB_PATH) as db:
+        try:
+            cursor = await db.execute(
+                "SELECT 1 FROM portfolios WHERE user_id = ? AND sub_account_name = ? LIMIT 1",
+                (user_id, sub_account_name)
+            )
+            exists = await cursor.fetchone()
+            if not exists:
+                logger.warning(f"Попытка удаления несуществующего суб-счета '{sub_account_name}' пользователем {user_id}.")
+                raise ValueError(f"Суб-счет '{sub_account_name}' не найден.")
+
+            await db.execute("DELETE FROM portfolios WHERE user_id = ? AND sub_account_name = ?", (user_id, sub_account_name))
+            await db.commit()
+            logger.info(f"Суб-счет '{sub_account_name}' и все его активы удалены для пользователя {user_id}.")
+        except ValueError as ve:
+            raise ve
+        except Exception as e:
+            logger.error(f"Ошибка при удалении суб-счета '{sub_account_name}' для пользователя {user_id}: {e}")
             raise
 
 # Функции для работы с алертами
 # Добавление алерта для пользователя.
-async def add_alert(user_id: int, asset_type: str, symbol: str, target_price: float, condition: str):
+async def add_alert(chat_id: int, asset_type: str, symbol: str, target_price: float, condition: str):
     async with aiosqlite.connect(settings.db.DB_PATH) as db:
         try:
             await db.execute("""
                 INSERT INTO alerts (user_id, asset_type, symbol, target_price, condition, created_at)
                 VALUES (?, ?, ?, ?, ?, ?)
-            """, (user_id, asset_type, symbol, target_price, condition, datetime.now().isoformat()))
+            """, (chat_id, asset_type, symbol, target_price, condition, datetime.now().isoformat()))
             await db.commit()
-            logger.info(f"Алерт для {symbol} добавлен для пользователя {user_id}.")
+            logger.info(f"Алерт для {symbol} добавлен для чата {chat_id}.")
         except Exception as e:
-            logger.error(f"Ошибка при добавлении алерта для {symbol} пользователя {user_id}: {e}")
+            logger.error(f"Ошибка при добавлении алерта для {symbol} чата {chat_id}: {e}")
             raise
 
 # Получение алертов пользователя или всех алертов.
-async def get_alerts(user_id: int = None):
+async def get_alerts(chat_id: int = None):
     async with aiosqlite.connect(settings.db.DB_PATH) as db:
         try:
-            if user_id:
-                cursor = await db.execute("SELECT * FROM alerts WHERE user_id = ?", (user_id,))
+            if chat_id:
+                cursor = await db.execute("SELECT * FROM alerts WHERE user_id = ?", (chat_id,))
             else:
                 cursor = await db.execute("SELECT * FROM alerts")
             alerts = await cursor.fetchall()
-            logger.info(f"Получено {len(alerts)} алертов для пользователя {user_id if user_id else 'всех'}")
+            logger.info(f"Получено {len(alerts)} алертов для чата {chat_id if chat_id else 'всех'}")
             return alerts
         except Exception as e:
             logger.error(f"Ошибка при получении алертов: {e}")
@@ -244,3 +306,34 @@ async def load_sample_events():
             logger.info(f"Добавлено примерное событие: {event['title']}")
         except Exception as e:
             logger.error(f"Ошибка при добавлении примера события: {e}")
+
+async def get_or_create_chat_settings(chat_id: int) -> tuple:
+    async with aiosqlite.connect(settings.db.DB_PATH) as db:
+        try:
+            cursor = await db.execute("SELECT allow_all_users FROM chat_settings WHERE chat_id = ?", (chat_id,))
+            row = await cursor.fetchone()
+            if row:
+                logger.debug(f"Настройки для чата {chat_id}: allow_all_users={row[0]}")
+                return row[0], # Return existing setting
+            else:
+                # Create default settings if not exist
+                await db.execute("INSERT INTO chat_settings (chat_id, allow_all_users) VALUES (?, ?)", (chat_id, True))
+                await db.commit()
+                logger.info(f"Созданы стандартные настройки для чата {chat_id}.")
+                return True, # Return default setting
+        except Exception as e:
+            logger.error(f"Ошибка при получении/создании настроек для чата {chat_id}: {e}")
+            return True, # Return default on error
+
+async def update_chat_settings(chat_id: int, allow_all_users: bool):
+    async with aiosqlite.connect(settings.db.DB_PATH) as db:
+        try:
+            await db.execute("""
+                INSERT OR REPLACE INTO chat_settings (chat_id, allow_all_users)
+                VALUES (?, ?)
+            """, (chat_id, allow_all_users))
+            await db.commit()
+            logger.info(f"Обновлены настройки для чата {chat_id}: allow_all_users={allow_all_users}")
+        except Exception as e:
+            logger.error(f"Ошибка при обновлении настроек для чата {chat_id}: {e}")
+            raise

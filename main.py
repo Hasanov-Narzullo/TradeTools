@@ -1,3 +1,4 @@
+# main
 import asyncio
 import sys
 from aiogram import Bot, Dispatcher
@@ -16,34 +17,27 @@ if sys.platform == "win32":
 
 # Основная функция для запуска бота.
 async def main():
-    # Настройка бота
     setup_bot()
 
-    # Инициализация планировщика
     scheduler = AsyncIOScheduler(timezone=settings.scheduler.TIMEZONE)
     setup_scheduler(scheduler)
     scheduler.start()
 
-    # Запуск бота
     try:
         await on_startup()
+        
+        asyncio.create_task(check_alerts(bot))
+        logger.info("Фоновая задача проверки алертов запущена.")
+
+        logger.info("Запуск polling...")
         await dp.start_polling(bot)
     except Exception as e:
-        logger.error(f"Ошибка при запуске бота: {e}")
+        logger.error(f"Ошибка во время работы бота: {e}")
     finally:
+        logger.info("Остановка бота...")
         await on_shutdown()
-
-    asyncio.create_task(check_alerts(bot))
-    logger.info("Фоновая задача проверки алертов запущена.")
-
-    try:
-        # Запускаем основной цикл обработки обновлений
-        logger.info("Бот запущен.")
-        await dp.start_polling(bot)
-    finally:
-        # Закрываем сессию бота при завершении
-        await bot.session.close()
-        logger.info("Бот остановлен.")
+        scheduler.shutdown()
+        logger.info("Планировщик остановлен.")
 
 if __name__ == "__main__":
     logger.info("Запуск бота...")
