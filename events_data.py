@@ -1,12 +1,6 @@
 # events_data
 from datetime import datetime
-
-EVENT_TYPES = {
-    "macro": "Общеэкономические",
-    "dividends": "Дивиденды",
-    "earnings": "Отчетности",
-    "press": "Пресс-конференции"
-}
+from utils import EVENT_TYPES
 
 # Пример событий (200 событий, 60 крипто, 140 инвестиции)
 SAMPLE_EVENTS = {

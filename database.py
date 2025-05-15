@@ -140,22 +140,27 @@ async def remove_from_portfolio(user_id: int, sub_account_name: str, symbol: str
 
 async def get_sub_accounts(user_id: int) -> list[str]:
     main_account_name = "Основной"
+    sub_accounts = set()
     async with aiosqlite.connect(settings.db.DB_PATH) as db:
         try:
             cursor = await db.execute(
-                "SELECT DISTINCT sub_account_name FROM portfolios WHERE user_id = ? ORDER BY sub_account_name",
+                "SELECT DISTINCT sub_account_name FROM portfolios WHERE user_id = ?",
                 (user_id,)
             )
             rows = await cursor.fetchall()
-            sub_accounts = [row[0] for row in rows]
-            if main_account_name in sub_accounts:
-                sub_accounts.remove(main_account_name)
-                sub_accounts.insert(0, main_account_name)
-            else:
-                sub_accounts.insert(0, main_account_name)
+            for row in rows:
+                sub_accounts.add(row[0])
 
-            logger.info(f"Получены суб-счета для пользователя {user_id}: {sub_accounts}")
-            return sub_accounts
+            sub_accounts.add(main_account_name)
+
+            sorted_sub_accounts = sorted(list(sub_accounts))
+
+            if main_account_name in sorted_sub_accounts:
+                sorted_sub_accounts.remove(main_account_name)
+                sorted_sub_accounts.insert(0, main_account_name)
+
+            logger.info(f"Получены суб-счета для пользователя {user_id}: {sorted_sub_accounts}")
+            return sorted_sub_accounts
         except Exception as e:
             logger.error(f"Ошибка при получении суб-счетов пользователя {user_id}: {e}")
             return [main_account_name]

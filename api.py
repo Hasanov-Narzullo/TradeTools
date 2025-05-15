@@ -40,109 +40,91 @@ def clean_cache():
             del _crypto_price_cache[symbol]
 
 # Получение цены акции через Alpha Vantage.
+@cached(ttl=600, cache=Cache.MEMORY, serializer=JsonSerializer())
 async def get_stock_price_alpha_vantage(symbol: str) -> Optional[float]:
     try:
         url = f"https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol={symbol}&apikey={settings.ALPHA_VANTAGE_API_KEY}"
         async with aiohttp.ClientSession() as session:
             async with session.get(url) as response:
                 data = await response.json()
-                logger.debug(f"Ответ Alpha Vantage для {symbol}: {data}")
+                logger.debug(f"Alpha Vantage for {symbol}: {data}")
                 if "Global Quote" in data and "05. price" in data["Global Quote"]:
-                    price = float(data["Global Quote"]["05. price"])
-                    _stock_price_cache[symbol] = (price, datetime.now())
-                    return price
-                else:
-                    logger.error(f"Цена для {symbol} не найдена в ответе Alpha Vantage: {data}")
-                    return None
+                    return float(data["Global Quote"]["05. price"])
+                logger.error(f"Price not found in Alpha Vantage response for {symbol}: {data}")
+                return None
     except Exception as e:
-        logger.error(f"Ошибка при получении цены для {symbol} через Alpha Vantage: {e}")
+        logger.error(f"Error getting price for {symbol} via Alpha Vantage: {e}")
         return None
 
 # Получение цены акции через Finnhub.
+@cached(ttl=600, cache=Cache.MEMORY, serializer=JsonSerializer())
 async def get_stock_price_finnhub(symbol: str) -> Optional[float]:
     try:
         url = f"https://finnhub.io/api/v1/quote?symbol={symbol}&token={settings.FINNHUB_API_KEY}"
         async with aiohttp.ClientSession() as session:
             async with session.get(url) as response:
                 data = await response.json()
-                logger.debug(f"Ответ Finnhub для {symbol}: {data}")
+                logger.debug(f"Finnhub for {symbol}: {data}")
                 if "c" in data and data["c"] > 0:
-                    price = float(data["c"])
-                    _stock_price_cache[symbol] = (price, datetime.now())
-                    return price
-                else:
-                    logger.error(f"Цена для {symbol} не найдена в ответе Finnhub: {data}")
-                    return None
+                    return float(data["c"])
+                logger.error(f"Price not found in Finnhub response for {symbol}: {data}")
+                return None
     except Exception as e:
-        logger.error(f"Ошибка при получении цены для {symbol} через Finnhub: {e}")
+        logger.error(f"Error getting price for {symbol} via Finnhub: {e}")
         return None
 
 # Получение цены акции через yfinance.
+@cached(ttl=600, cache=Cache.MEMORY, serializer=JsonSerializer())
 async def get_stock_price_yfinance(symbol: str) -> Optional[float]:
     try:
         ticker = yf.Ticker(symbol + ".ME" if symbol in ["SBER", "GAZP", "LKOH"] else symbol)
         data = ticker.history(period="1d")
         if not data.empty:
             price = data['Close'].iloc[-1]
-            _stock_price_cache[symbol] = (price, datetime.now())
-            logger.info(f"Цена для {symbol} получена через yfinance: {price}")
+            logger.info(f"yfinance price for {symbol}: {price}")
             return price
-        else:
-            logger.error(f"Цена для {symbol} не найдена через yfinance")
-            return None
+        logger.error(f"Price not found via yfinance for {symbol}")
+        return None
     except Exception as e:
-        logger.error(f"Ошибка при получении цены для {symbol} через yfinance: {e}")
+        logger.error(f"Error getting price for {symbol} via yfinance: {e}")
         return None
 
 # Получение цены акции с переключением между API.
 async def get_stock_price(symbol: str) -> Optional[float]:
-    if symbol in _stock_price_cache:
-        price, timestamp = _stock_price_cache[symbol]
-        if (datetime.now() - timestamp).total_seconds() < STOCK_CACHE_TIMEOUT:
-            logger.info(f"Использована кэшированная цена для акции {symbol}: {price}")
-            return price
-
     apis = [
         (get_stock_price_alpha_vantage, "Alpha Vantage"),
-        (get_stock_price_yfinance, "yfinance"),  # Исправлено: ссылка на функцию
+        (get_stock_price_yfinance, "yfinance"),
         (get_stock_price_finnhub, "Finnhub")
     ]
     random.shuffle(apis)
-
     for api_func, api_name in apis:
         try:
-            price = await api_func(symbol)  # Передаем symbol при вызове
+            price = await api_func(symbol)
             if price is not None:
-                logger.info(f"Цена для {symbol} получена через {api_name}: {price}")
+                logger.info(f"Price for {symbol} via {api_name}: {price}")
                 return price
-            logger.warning(f"Цена для {symbol} не найдена через {api_name}, переходим к следующему API")
+            logger.warning(f"Price for {symbol} not found via {api_name}, trying next.")
         except Exception as e:
-            logger.error(f"Ошибка при вызове {api_name} для {symbol}: {e}")
-            continue
-
-    logger.error(f"Не удалось получить цену для {symbol} через все доступные API")
+            logger.error(f"Error calling {api_name} for {symbol}: {e}")
+    logger.error(f"Failed to get price for {symbol} from all stock APIs.")
     return None
 
 # Получение цены криптовалюты через ccxt.
+@cached(ttl=120, cache=Cache.MEMORY, serializer=JsonSerializer())
 async def get_crypto_price(symbol: str) -> Optional[float]:
-    if symbol in _crypto_price_cache:
-        price, timestamp = _crypto_price_cache[symbol]
-        if (datetime.now() - timestamp).total_seconds() < CRYPTO_CACHE_TIMEOUT:
-            logger.info(f"Использована кэшированная цена для криптовалюты {symbol}: {price}")
-            return price
-
+    exchange = None
     try:
         exchange = ccxt.binance()
         ticker = await exchange.fetch_ticker(symbol)
         price = ticker['last']
-        _crypto_price_cache[symbol] = (price, datetime.now())
-        logger.info(f"Цена криптовалюты {symbol}: {price}")
+        logger.info(f"Crypto price for {symbol}: {price}")
         return price
     except Exception as e:
-        logger.error(f"Ошибка при получении цены для {symbol} через ccxt: {e}")
+        logger.error(f"Error getting crypto price for {symbol} via ccxt: {e}")
         return None
     finally:
-        await exchange.close()
+        if exchange:
+            await exchange.close()
 
 # Получение истории стоимости акций
 async def get_stock_history(symbol: str, days: int = 30):
@@ -181,13 +163,10 @@ async def get_stock_price_with_retry(symbol: str, retries: int = 3, delay: int =
 # Ошибка получения данных через апи
 async def fetch_asset_price(symbol: str, asset_type: str) -> Optional[float]:
     if asset_type == "stock":
-        price = await get_stock_price(symbol)
-        if price is None:
-            logger.error(f"Не удалось получить цену для {symbol} через все API")
-            # Здесь можно отправить уведомление пользователю, если требуется
-        return price
+        return await get_stock_price(symbol)
     elif asset_type == "crypto":
         return await get_crypto_price(symbol)
+    logger.error(f"Unknown asset type '{asset_type}' for symbol {symbol}")
     return None
 
 # Повторная попытка получения стоимости - ???
@@ -308,82 +287,72 @@ EVENT_TYPES = {
 cache = Cache(Cache.MEMORY, serializer=JsonSerializer(), ttl=5 * 3600)  # 5 часов в секундах
 
 # Получение календаря отчетностей через Alpha Vantage API.
-@cached(ttl=5 * 3600, cache=Cache.MEMORY, serializer=JsonSerializer())
+@cached(ttl=18000, cache=Cache.MEMORY, serializer=JsonSerializer())
 async def fetch_alpha_vantage_earnings() -> list:
     events = []
     url = f"https://www.alphavantage.co/query?function=EARNINGS_CALENDAR&horizon=3month&apikey={ALPHA_VANTAGE_API_KEY}"
     try:
-        logger.info("Запрос календаря отчетностей через Alpha Vantage")
-        response = requests.get(url)
-        if response.status_code == 200:
-            data = response.text.splitlines()
-            if len(data) <= 1:
-                logger.warning("Календарь отчетностей Alpha Vantage пуст")
-                return events
-
-            for line in data[1:]:  # Пропускаем заголовок
-                try:
-                    symbol, name, report_date, fiscal_date, estimate, currency = line.split(',')
-                    event_date = datetime.strptime(report_date, "%Y-%m-%d").strftime("%Y-%m-%d %H:%M:%S")
-                    events.append({
-                        "event_date": event_date,
-                        "title": f"Отчетность для {symbol}",
-                        "description": f"Компания: {name}, Ожидаемый EPS: {estimate} {currency}, Фискальная дата: {fiscal_date}",
-                        "source": "Alpha Vantage",
-                        "type": "earnings",
-                        "symbol": symbol
-                    })
-                    logger.debug(f"Добавлено событие отчетности для {symbol}")
-                except Exception as e:
-                    logger.error(f"Ошибка при обработке события отчетности: {e}")
-                    continue
-        else:
-            logger.error(f"Ошибка при запросе к Alpha Vantage: {response.status_code}")
+        logger.info("Fetching Alpha Vantage earnings calendar")
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as response:
+                if response.status == 200:
+                    content = await response.text()
+                    data = content.splitlines()
+                    if len(data) <= 1:
+                        logger.warning("Alpha Vantage earnings calendar is empty")
+                        return events
+                    for line in data[1:]:
+                        try:
+                            symbol, name, report_date, fiscal_date, estimate, currency = line.split(',')
+                            event_date = datetime.strptime(report_date, "%Y-%m-%d").strftime("%Y-%m-%d %H:%M:%S")
+                            events.append({
+                                "event_date": event_date, "title": f"Отчетность для {symbol}",
+                                "description": f"Компания: {name}, Ожидаемый EPS: {estimate} {currency}, Фискальная дата: {fiscal_date}",
+                                "source": "Alpha Vantage", "type": "earnings", "symbol": symbol
+                            })
+                        except Exception as e:
+                            logger.error(f"Error processing Alpha Vantage earning event line '{line}': {e}")
+                else:
+                    logger.error(f"Error fetching Alpha Vantage earnings: {response.status}")
     except Exception as e:
-        logger.error(f"Ошибка при получении данных Alpha Vantage: {e}")
-    logger.info(f"Получено {len(events)} событий отчетностей с Alpha Vantage")
+        logger.error(f"Error fetching Alpha Vantage earnings data: {e}")
+    logger.info(f"Fetched {len(events)} Alpha Vantage earnings events")
     return events
 
 # Получение макроэкономических событий через Alpha Vantage API (например, ВВП, CPI).
-@cached(ttl=5 * 3600, cache=Cache.MEMORY, serializer=JsonSerializer())
+@cached(ttl=18000, cache=Cache.MEMORY, serializer=JsonSerializer())
 async def fetch_alpha_vantage_macro() -> list:
     events = []
-    # Пример макроэкономического индикатора (ВВП)
     indicators = [
         {"function": "REAL_GDP", "interval": "annual", "name": "ВВП (реальный)"},
         {"function": "CPI", "interval": "monthly", "name": "Индекс потребительских цен (CPI)"}
     ]
-
     for indicator in indicators:
         url = f"https://www.alphavantage.co/query?function={indicator['function']}&interval={indicator['interval']}&apikey={ALPHA_VANTAGE_API_KEY}"
         try:
-            logger.info(f"Запрос макроэкономического индикатора {indicator['name']} через Alpha Vantage")
-            response = requests.get(url)
-            if response.status_code == 200:
-                data = response.json()
-                if "data" in data:
-                    for item in data["data"]:
-                        try:
-                            event_date = datetime.strptime(item["date"], "%Y-%m-%d").strftime("%Y-%m-%d %H:%M:%S")
-                            events.append({
-                                "event_date": event_date,
-                                "title": f"{indicator['name']}",
-                                "description": f"Значение: {item['value']}",
-                                "source": "Alpha Vantage",
-                                "type": "macro",
-                                "symbol": None
-                            })
-                            logger.debug(f"Добавлено макроэкономическое событие: {indicator['name']}")
-                        except Exception as e:
-                            logger.error(f"Ошибка при обработке макроэкономического события: {e}")
-                            continue
-                else:
-                    logger.warning(f"Макроэкономический индикатор {indicator['name']} пуст")
-            else:
-                logger.error(f"Ошибка при запросе к Alpha Vantage: {response.status_code}")
+            logger.info(f"Fetching Alpha Vantage macro indicator {indicator['name']}")
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        if "data" in data:
+                            for item in data["data"]:
+                                try:
+                                    event_date = datetime.strptime(item["date"], "%Y-%m-%d").strftime("%Y-%m-%d %H:%M:%S")
+                                    events.append({
+                                        "event_date": event_date, "title": indicator['name'],
+                                        "description": f"Значение: {item['value']}",
+                                        "source": "Alpha Vantage", "type": "macro", "symbol": None
+                                    })
+                                except Exception as e:
+                                    logger.error(f"Error processing Alpha Vantage macro event item {item}: {e}")
+                        else:
+                            logger.warning(f"Alpha Vantage macro indicator {indicator['name']} is empty or missing 'data' key")
+                    else:
+                        logger.error(f"Error fetching Alpha Vantage macro {indicator['name']}: {response.status}")
         except Exception as e:
-            logger.error(f"Ошибка при получении данных Alpha Vantage: {e}")
-    logger.info(f"Получено {len(events)} макроэкономических событий с Alpha Vantage")
+            logger.error(f"Error fetching Alpha Vantage macro data for {indicator['name']}: {e}")
+    logger.info(f"Fetched {len(events)} Alpha Vantage macro events")
     return events
 
 # Добавление тестовых событий для проверки системы.
@@ -433,141 +402,100 @@ eodhd_client = APIClient(settings.api.EODHD_API_KEY)
 @cached(ttl=EODHD_EVENTS_CACHE_TIMEOUT, cache=Cache.MEMORY, serializer=JsonSerializer())
 async def fetch_eodhd_economic_calendar(from_date: str = None, to_date: str = None) -> list:
     events = []
+    from_date = from_date or datetime.now().strftime("%Y-%m-%d")
+    to_date = to_date or (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d")
+    url = f"https://eodhistoricaldata.com/api/economic-events?api_token={settings.api.EODHD_API_KEY}&from={from_date}&to={to_date}"
+    logger.info(f"Fetching EODHD economic calendar from {from_date} to {to_date}")
     try:
-        if not from_date:
-            from_date = datetime.now().strftime("%Y-%m-%d")
-        if not to_date:
-            to_date = (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d")
-
-        url = f"https://eodhistoricaldata.com/api/economic-events?api_token={settings.api.EODHD_API_KEY}&from={from_date}&to={to_date}"
-        logger.info(f"Запрос экономического календаря через EODHD с {from_date} по {to_date}")
-
         async with aiohttp.ClientSession() as session:
             async with session.get(url) as response:
                 if response.status == 200:
                     data = await response.json()
                     if not data:
-                        logger.warning("Экономический календарь EODHD пуст")
+                        logger.warning("EODHD economic calendar is empty")
                         return events
-
                     for event in data:
                         try:
-                            # Определяем тип события
-                            event_type = "macro"  # По умолчанию макро
+                            event_type = "macro"
                             event_title = event.get("event", "Economic Event").lower()
-                            if "earnings" in event_title:
-                                event_type = "earnings"
-                            elif "dividend" in event_title:
-                                event_type = "dividends"
-                            elif "meeting" in event_title or "conference" in event_title:
-                                event_type = "press"
+                            if "earnings" in event_title: event_type = "earnings"
+                            elif "dividend" in event_title: event_type = "dividends"
+                            elif "meeting" in event_title or "conference" in event_title: event_type = "press"
 
-                            # Проверяем наличие даты и преобразуем
                             if not event.get("date"):
-                                logger.warning(f"Пропущено событие без даты: {event}")
+                                logger.warning(f"Skipping EODHD event with no date: {event}")
                                 continue
-                            event_date = datetime.strptime(event["date"], "%Y-%m-%dT%H:%M:%S").strftime(
-                                "%Y-%m-%d %H:%M:%S")
+                            event_date = datetime.fromisoformat(event["date"].replace("Z", "+00:00")).strftime("%Y-%m-%d %H:%M:%S")
 
-                            description = []
-                            if event.get("actual"):
-                                description.append(f"Факт: {event['actual']}")
-                            if event.get("forecast"):
-                                description.append(f"Прогноз: {event['forecast']}")
-                            if event.get("previous"):
-                                description.append(f"Пред: {event['previous']}")
-                            description_text = ", ".join(description) if description else "Нет данных"
+                            desc = []
+                            if event.get("actual"): desc.append(f"Факт: {event['actual']}")
+                            if event.get("forecast"): desc.append(f"Прогноз: {event['forecast']}")
+                            if event.get("previous"): desc.append(f"Пред: {event['previous']}")
+                            desc_text = ", ".join(desc) if desc else "Нет данных"
 
                             events.append({
-                                "event_date": event_date,
-                                "title": event.get("event", "Economic Event"),
-                                "description": description_text,
-                                "source": "EODHD",
-                                "type": event_type,
-                                "symbol": event.get("code")  # Используем code как символ
+                                "event_date": event_date, "title": event.get("event", "Economic Event"),
+                                "description": desc_text, "source": "EODHD", "type": event_type,
+                                "symbol": event.get("code")
                             })
-                            logger.debug(f"Добавлено событие EODHD: {event.get('event')}")
                         except Exception as e:
-                            logger.error(f"Ошибка при обработке события EODHD: {e}")
-                            continue
-                elif response.status == 429:
-                    logger.error("Превышен лимит запросов EODHD API")
-                    return events
-                elif response.status == 401:
-                    logger.error("Неверный API ключ EODHD")
-                    return events
+                            logger.error(f"Error processing EODHD economic event {event}: {e}")
+                elif response.status in [401, 429]:
+                     logger.error(f"EODHD API error: {'Rate limit' if response.status == 429 else 'Invalid key'} ({response.status})")
+                     return events
                 else:
-                    logger.error(f"Ошибка при запросе к EODHD: {response.status}")
+                    logger.error(f"Error fetching EODHD economic calendar: {response.status}")
                     return events
-
-        logger.info(f"Получено {len(events)} событий с EODHD")
+        logger.info(f"Fetched {len(events)} EODHD economic events")
     except Exception as e:
-        logger.error(f"Ошибка при получении данных EODHD: {e}")
+        logger.error(f"Error fetching EODHD economic data: {e}")
     return events
 
 # Получение календаря отчетностей через EODHD API используя HTTP-запросы.
 @cached(ttl=EODHD_EVENTS_CACHE_TIMEOUT, cache=Cache.MEMORY, serializer=JsonSerializer())
 async def fetch_eodhd_earnings_calendar(symbol: str = None, from_date: str = None, to_date: str = None) -> list:
     events = []
+    from_date = from_date or datetime.now().strftime("%Y-%m-%d")
+    to_date = to_date or (datetime.now() + timedelta(days=90)).strftime("%Y-%m-%d")
+    url = f"https://eodhistoricaldata.com/api/earnings?api_token={settings.api.EODHD_API_KEY}&from={from_date}&to={to_date}"
+    if symbol: url += f"&symbols={symbol}"
+    logger.info(f"Fetching EODHD earnings calendar for {symbol or 'all assets'}")
     try:
-        if not from_date:
-            from_date = datetime.now().strftime("%Y-%m-%d")
-        if not to_date:
-            to_date = (datetime.now() + timedelta(days=90)).strftime("%Y-%m-%d")
-
-        url = f"https://eodhistoricaldata.com/api/earnings?api_token={settings.api.EODHD_API_KEY}&from={from_date}&to={to_date}"
-        if symbol:
-            url += f"&symbol={symbol}"
-
-        logger.info(f"Запрос календаря отчетностей через EODHD для {symbol if symbol else 'всех активов'}")
-
         async with aiohttp.ClientSession() as session:
             async with session.get(url) as response:
                 if response.status == 200:
                     data = await response.json()
                     earnings_data = data.get("earnings", [])
                     if not earnings_data:
-                        logger.warning("Календарь отчетностей EODHD пуст")
+                        logger.warning("EODHD earnings calendar is empty")
                         return events
-
                     for earning in earnings_data:
                         try:
-                            if not earning.get("date"):
-                                logger.warning(f"Пропущено событие отчетности без даты: {earning}")
+                            if not earning.get("report_date"):
+                                logger.warning(f"Skipping EODHD earning event with no report_date: {earning}")
                                 continue
-                            event_date = datetime.strptime(earning["date"], "%Y-%m-%d").strftime("%Y-%m-%d %H:%M:%S")
-                            description = []
-                            if earning.get("eps_actual"):
-                                description.append(f"EPS факт: {earning['eps_actual']}")
-                            if earning.get("eps_estimate"):
-                                description.append(f"EPS прогноз: {earning['eps_estimate']}")
-                            description_text = ", ".join(description) if description else "Нет данных"
-
+                            event_date = datetime.strptime(earning["report_date"], "%Y-%m-%d").strftime("%Y-%m-%d %H:%M:%S")
+                            desc = []
+                            if earning.get("epsActual"): desc.append(f"EPS факт: {earning['epsActual']}")
+                            if earning.get("epsEstimate"): desc.append(f"EPS прогноз: {earning['epsEstimate']}")
+                            desc_text = ", ".join(desc) if desc else "Нет данных"
+                            event_symbol = earning.get("code", symbol)
                             events.append({
-                                "event_date": event_date,
-                                "title": f"Отчетность для {earning.get('code', symbol)}",
-                                "description": description_text,
-                                "source": "EODHD",
-                                "type": "earnings",
-                                "symbol": earning.get("code", symbol)
+                                "event_date": event_date, "title": f"Отчетность для {event_symbol}",
+                                "description": desc_text, "source": "EODHD", "type": "earnings",
+                                "symbol": event_symbol
                             })
-                            logger.debug(f"Добавлено событие отчетности EODHD для {earning.get('code', symbol)}")
                         except Exception as e:
-                            logger.error(f"Ошибка при обработке события отчетности EODHD: {e}")
-                            continue
-                elif response.status == 429:
-                    logger.error("Превышен лимит запросов EODHD API")
-                    return events
-                elif response.status == 401:
-                    logger.error("Неверный API ключ EODHD")
-                    return events
+                            logger.error(f"Error processing EODHD earning event {earning}: {e}")
+                elif response.status in [401, 429]:
+                     logger.error(f"EODHD API error: {'Rate limit' if response.status == 429 else 'Invalid key'} ({response.status}) for earnings")
+                     return events
                 else:
-                    logger.error(f"Ошибка при запросе к EODHD: {response.status}")
+                    logger.error(f"Error fetching EODHD earnings calendar: {response.status}")
                     return events
-
-        logger.info(f"Получено {len(events)} событий отчетностей с EODHD")
+        logger.info(f"Fetched {len(events)} EODHD earnings events")
     except Exception as e:
-        logger.error(f"Ошибка при получении данных отчетностей EODHD: {e}")
+        logger.error(f"Error fetching EODHD earnings data: {e}")
     return events
 
 # Обновленная функция получения экономического календаря, включающая EODHD.
@@ -575,20 +503,22 @@ async def fetch_eodhd_earnings_calendar(symbol: str = None, from_date: str = Non
 async def fetch_economic_calendar() -> list:
     events = []
     try:
-        # Получаем события из Alpha Vantage (существующий код)
-        earnings_events = await fetch_alpha_vantage_earnings()
-        events.extend(earnings_events)
-        macro_events = await fetch_alpha_vantage_macro()
-        events.extend(macro_events)
+        tasks = [
+            fetch_alpha_vantage_earnings(),
+            fetch_alpha_vantage_macro(),
+            fetch_eodhd_economic_calendar()
+        ]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        for result in results:
+            if isinstance(result, list):
+                events.extend(result)
+            elif isinstance(result, Exception):
+                logger.error(f"Error fetching events subset: {result}")
 
-        # Получаем события из EODHD
-        eodhd_events = await fetch_eodhd_economic_calendar()
-        events.extend(eodhd_events)
-
-        logger.info(f"Всего получено {len(events)} событий")
+        logger.info(f"Total economic events fetched: {len(events)}")
         return events
     except Exception as e:
-        logger.error(f"Ошибка при получении экономического календаря: {e}")
+        logger.error(f"Error fetching combined economic calendar: {e}")
         return events
 
 # Обновленная функция получения дивидендов и отчетностей, включающая EODHD.
@@ -596,75 +526,78 @@ async def fetch_economic_calendar() -> list:
 async def fetch_dividends_and_earnings(symbol: str) -> list:
     events = []
     try:
-        # Получаем дивиденды через yfinance
-        try:
-            ticker = Ticker(symbol)
-            dividends = ticker.dividends
-            if dividends is not None and not dividends.empty:
-                for date, amount in dividends.items():
-                    event_date = date.strftime("%Y-%m-%d %H:%M:%S")
-                    events.append({
-                        "event_date": event_date,
-                        "title": f"Дивиденды для {symbol}",
-                        "description": f"Сумма: ${amount:.2f}",
-                        "source": "Yahoo Finance",
-                        "type": "dividends",
-                        "symbol": symbol
-                    })
-                    logger.debug(f"Добавлено событие дивидендов для {symbol} через yfinance")
-        except Exception as e:
-            logger.error(f"Ошибка при получении дивидендов через yfinance для {symbol}: {e}")
+        eodhd_earnings_task = fetch_eodhd_earnings_calendar(symbol=symbol)
+        eodhd_dividends_task = fetch_eodhd_dividends(symbol)
+        yfinance_dividends_task = fetch_yfinance_dividends(symbol)
 
-        # Получаем дивиденды через EODHD
-        try:
-            from_date = datetime.now().strftime("%Y-%m-%d")
-            to_date = (datetime.now() + timedelta(days=90)).strftime("%Y-%m-%d")
+        results = await asyncio.gather(
+            eodhd_earnings_task,
+            eodhd_dividends_task,
+            yfinance_dividends_task,
+            return_exceptions=True
+        )
 
-            url = f"https://eodhistoricaldata.com/api/dividends/{symbol}?api_token={settings.api.EODHD_API_KEY}&from={from_date}&to={to_date}"
-            async with aiohttp.ClientSession() as session:
-                async with session.get(url) as response:
-                    if response.status == 200:
-                        data = await response.json()
-                        dividends_data = data.get("dividends", [])
-                        if dividends_data:
-                            for dividend in dividends_data:
-                                try:
-                                    if not dividend.get("date"):
-                                        logger.warning(f"Пропущено событие дивидендов без даты: {dividend}")
-                                        continue
-                                    event_date = datetime.strptime(dividend["date"], "%Y-%m-%d").strftime(
-                                        "%Y-%m-%d %H:%M:%S")
-                                    amount = dividend.get("value", "N/A")
-                                    events.append({
-                                        "event_date": event_date,
-                                        "title": f"Дивиденды для {symbol}",
-                                        "description": f"Сумма: ${amount}",
-                                        "source": "EODHD",
-                                        "type": "dividends",
-                                        "symbol": symbol
-                                    })
-                                    logger.debug(f"Добавлено событие дивидендов для {symbol} через EODHD")
-                                except Exception as e:
-                                    logger.error(f"Ошибка при обработке события дивидендов EODHD: {e}")
-                                    continue
-                    elif response.status == 429:
-                        logger.error("Превышен лимит запросов EODHD API для дивидендов")
-                    elif response.status == 401:
-                        logger.error("Неверный API ключ EODHD для дивидендов")
-                    else:
-                        logger.error(f"Ошибка при запросе дивидендов к EODHD: {response.status}")
-        except Exception as e:
-            logger.error(f"Ошибка при получении дивидендов через EODHD для {symbol}: {e}")
+        for result in results:
+            if isinstance(result, list):
+                events.extend(result)
+            elif isinstance(result, Exception):
+                logger.error(f"Error fetching dividends/earnings subset for {symbol}: {result}")
 
-        # Получаем отчетности через EODHD
-        try:
-            eodhd_earnings = await fetch_eodhd_earnings_calendar(symbol=symbol)
-            events.extend(eodhd_earnings)
-        except Exception as e:
-            logger.error(f"Ошибка при получении отчетностей через EODHD для {symbol}: {e}")
-
-        logger.info(f"Получено {len(events)} событий (дивиденды и отчетности) для актива {symbol}")
+        logger.info(f"Fetched {len(events)} dividends & earnings events for {symbol}")
         return events
     except Exception as e:
-        logger.error(f"Общая ошибка при получении данных для {symbol}: {e}")
+        logger.error(f"Error fetching combined dividends & earnings for {symbol}: {e}")
         return events
+
+async def fetch_eodhd_dividends(symbol: str) -> list:
+    events = []
+    from_date = datetime.now().strftime("%Y-%m-%d")
+    to_date = (datetime.now() + timedelta(days=90)).strftime("%Y-%m-%d")
+    url = f"https://eodhistoricaldata.com/api/dividends/{symbol}.US?api_token={settings.api.EODHD_API_KEY}&from={from_date}&to={to_date}&fmt=json"
+    logger.info(f"Fetching EODHD dividends for {symbol}")
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as response:
+                if response.status == 200:
+                    dividends_data = await response.json()
+                    if isinstance(dividends_data, list):
+                         for dividend in dividends_data:
+                             try:
+                                 if not dividend.get("paymentDate") or not dividend.get("value"):
+                                     logger.warning(f"Skipping EODHD dividend with missing data: {dividend}")
+                                     continue
+                                 event_date = datetime.strptime(dividend["paymentDate"], "%Y-%m-%d").strftime("%Y-%m-%d %H:%M:%S")
+                                 amount = dividend.get("value", "N/A")
+                                 events.append({
+                                     "event_date": event_date, "title": f"Дивиденды для {symbol}",
+                                     "description": f"Сумма: ${amount}", "source": "EODHD",
+                                     "type": "dividends", "symbol": symbol
+                                 })
+                             except Exception as e:
+                                 logger.error(f"Error processing EODHD dividend {dividend}: {e}")
+                elif response.status in [401, 429]:
+                     logger.error(f"EODHD API error: {'Rate limit' if response.status == 429 else 'Invalid key'} ({response.status}) for dividends")
+                else:
+                    logger.error(f"Error fetching EODHD dividends for {symbol}: {response.status}")
+    except Exception as e:
+        logger.error(f"Error fetching EODHD dividend data for {symbol}: {e}")
+    return events
+
+async def fetch_yfinance_dividends(symbol: str) -> list:
+    events = []
+    logger.info(f"Fetching yfinance dividends for {symbol}")
+    try:
+        ticker = Ticker(symbol)
+        dividends = ticker.dividends
+        if dividends is not None and not dividends.empty:
+            future_dividends = dividends[dividends.index > datetime.now()]
+            for date, amount in future_dividends.items():
+                 events.append({
+                    "event_date": date.strftime("%Y-%m-%d %H:%M:%S"),
+                    "title": f"Дивиденды для {symbol}",
+                    "description": f"Сумма: ${amount:.2f}",
+                    "source": "Yahoo Finance", "type": "dividends", "symbol": symbol
+                 })
+    except Exception as e:
+        logger.error(f"Error fetching yfinance dividends for {symbol}: {e}")
+    return events

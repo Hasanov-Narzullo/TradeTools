@@ -5,29 +5,9 @@ import datetime
 import arrow
 from loguru import logger
 
-class Good:
-    def __init__(self):
-        self.value = "+"
-        self.name = "good"
-
-    def __repr__(self):
-        return "<Good(value='%s')>" % (self.value)
-
-class Bad:
-    def __init__(self):
-        self.value = "-"
-        self.name = "bad"
-
-    def __repr__(self):
-        return "<Bad(value='%s')>" % (self.value)
-
-class Unknow:
-    def __init__(self):
-        self.value = "?"
-        self.name = "unknow"
-
-    def __repr__(self):
-        return "<Unknow(value='%s')>" % (self.value)
+SIGNAL_GOOD = "+"
+SIGNAL_BAD = "-"
+SIGNAL_UNKNOWN = "?"
 
 class Investing:
     def __init__(self, uri='https://ru.investing.com/economic-calendar/'):
@@ -45,12 +25,10 @@ class Investing:
                 browser = await p.chromium.launch(headless=True)
                 page = await browser.new_page()
                 await page.goto(self.uri, wait_until="networkidle")
-
-                # Ждем загрузки таблицы
                 try:
                     await page.wait_for_selector('table#economicCalendarData', timeout=30000)
                 except Exception as e:
-                    logger.error(f"Ошибка при ожидании таблицы: {e}")
+                    logger.error(f"Timeout waiting for table#economicCalendarData: {e}")
                     await browser.close()
                     return events
 
@@ -60,117 +38,71 @@ class Investing:
                 soup = BeautifulSoup(html, "html.parser")
                 table = soup.find('table', {"id": "economicCalendarData"})
                 if not table:
-                    logger.error("Таблица событий не найдена на Investing.com")
+                    logger.error("economicCalendarData table not found on Investing.com")
                     return events
 
                 tbody = table.find('tbody')
                 rows = tbody.findAll('tr', {"class": "js-event-item"})
                 if not rows:
-                    logger.warning("События не найдены на Investing.com")
+                    logger.warning("No events found in table on Investing.com")
                     return events
 
                 for row in rows:
-                    news = {
-                        'timestamp': None,
-                        'country': None,
-                        'impact': None,
-                        'url': None,
-                        'name': None,
-                        'bold': None,
-                        'fore': None,
-                        'prev': None,
-                        'signal': None,
-                        'type': None
+                    news_data = {
+                        'timestamp': None,'country': None,'impact': None,'url': None,
+                        'name': None,'bold': '','fore': '','prev': '',
+                        'signal': SIGNAL_UNKNOWN,'type': 'unknown'
                     }
-
                     try:
-                        # Парсинг времени и даты
                         _datetime = row.attrs.get('data-event-datetime')
                         if _datetime:
-                            news['timestamp'] = arrow.get(_datetime, "YYYY/MM/DD HH:mm:ss").timestamp
-                            event_date = arrow.get(_datetime, "YYYY/MM/DD HH:mm:ss").strftime("%Y-%m-%d %H:%M:%S")
-                        else:
-                            logger.debug("Дата события не найдена, пропускаем")
-                            continue
+                            dt_obj = arrow.get(_datetime, "YYYY/MM/DD HH:mm:ss")
+                            news_data['timestamp'] = dt_obj.timestamp
+                            event_date = dt_obj.strftime("%Y-%m-%d %H:%M:%S")
+                        else: continue
 
-                        # Парсинг страны
                         cols = row.find('td', {"class": "flagCur"})
-                        if cols:
-                            flag = cols.find('span')
-                            news['country'] = flag.get('title') if flag else "Unknown"
+                        if cols: news_data['country'] = cols.find('span').get('title', 'Unknown') if cols.find('span') else "Unknown"
 
-                        # Парсинг влияния
                         impact = row.find('td', {"class": "sentiment"})
-                        if impact:
-                            bull = impact.findAll('i', {"class": "grayFullBullishIcon"})
-                            news['impact'] = len(bull)
+                        if impact: news_data['impact'] = len(impact.findAll('i', {"class": "grayFullBullishIcon"}))
 
-                        # Парсинг события
                         event = row.find('td', {"class": "event"})
                         if event:
                             a = event.find('a')
                             if a:
-                                news['url'] = f"{self.uri}{a['href']}"
-                                news['name'] = a.text.strip()
+                                news_data['url'] = f"https://ru.investing.com{a['href']}" if a['href'].startswith('/') else a['href']
+                                news_data['name'] = a.text.strip()
+                            if event.find('span', {"class": "smallGrayReport"}): news_data['type'] = "report"
+                            elif event.find('span', {"class": "audioIconNew"}): news_data['type'] = "speech"
+                            elif event.find('span', {"class": "smallGrayP"}): news_data['type'] = "release"
+                            elif event.find('span', {"class": "sandClock"}): news_data['type'] = "retrieving data"
 
-                            # Определение типа события
-                            legend = event.find('span', {"class": "smallGrayReport"})
-                            if legend:
-                                news['type'] = "report"
-                            legend = event.find('span', {"class": "audioIconNew"})
-                            if legend:
-                                news['type'] = "speech"
-                            legend = event.find('span', {"class": "smallGrayP"})
-                            if legend:
-                                news['type'] = "release"
-                            legend = event.find('span', {"class": "sandClock"})
-                            if legend:
-                                news['type'] = "retrieving data"
+                        bold_td = row.find('td', {"class": "bold"})
+                        if bold_td: news_data['bold'] = bold_td.text.strip()
+                        fore_td = row.find('td', {"class": "fore"})
+                        if fore_td: news_data['fore'] = fore_td.text.strip()
+                        prev_td = row.find('td', {"class": "prev"})
+                        if prev_td: news_data['prev'] = prev_td.text.strip()
 
-                        # Парсинг значений
-                        bold = row.find('td', {"class": "bold"})
-                        if bold and bold.text.strip():
-                            news['bold'] = bold.text.strip()
-                        else:
-                            news['bold'] = ''
+                        if bold_td:
+                            classes = bold_td.get('class', [])
+                            if "blackFont" in classes: news_data['signal'] = SIGNAL_UNKNOWN
+                            elif "redFont" in classes: news_data['signal'] = SIGNAL_BAD
+                            elif "greenFont" in classes: news_data['signal'] = SIGNAL_GOOD
 
-                        fore = row.find('td', {"class": "fore"})
-                        if fore:
-                            news['fore'] = fore.text.strip()
-                        else:
-                            news['fore'] = ''
-
-                        prev = row.find('td', {"class": "prev"})
-                        if prev:
-                            news['prev'] = prev.text.strip()
-                        else:
-                            news['prev'] = ''
-
-                        # Определение сигнала
-                        if bold and "blackFont" in bold.get('class', []):
-                            news['signal'] = Unknow()
-                        elif bold and "redFont" in bold.get('class', []):
-                            news['signal'] = Bad()
-                        elif bold and "greenFont" in bold.get('class', []):
-                            news['signal'] = Good()
-                        else:
-                            news['signal'] = Unknow()
-
-                        # Формируем событие для базы данных
                         events.append({
                             "event_date": event_date,
-                            "title": news['name'] or "Неизвестное событие",
-                            "description": f"Влияние: {news['impact']} звезд, Страна: {news['country']}, Тип: {news['type'] or 'unknown'}, Прогноз: {news['fore']}, Предыдущее: {news['prev']}",
+                            "title": news_data['name'] or "Неизвестное событие",
+                            "description": f"Влияние: {news_data.get('impact','N/A')}*, Страна: {news_data.get('country','N/A')}, Тип: {news_data.get('type','N/A')}, Прогноз: {news_data.get('fore','N/A')}, Пред: {news_data.get('prev','N/A')}",
                             "source": "Investing.com",
                             "type": "macro",
                             "symbol": None
                         })
-                        logger.debug(f"Добавлено событие: {news['name']}")
                     except Exception as e:
-                        logger.error(f"Ошибка при парсинге события: {e}")
-                        continue
+                        logger.error(f"Error parsing investing.com event row: {e}")
         except Exception as e:
-            logger.error(f"Ошибка при запросе к Investing.com: {e}")
+            logger.error(f"Error during investing.com request/parsing: {e}")
 
-        logger.info(f"Получено {len(events)} общеэкономических событий с Investing.com")
+        logger.info(f"Parsed {len(events)} events from Investing.com")
         return events

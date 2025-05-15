@@ -2,28 +2,28 @@
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
 from loguru import logger
 
+
+def _add_back_button_row(keyboard: list, callback_data: str):
+    keyboard.append([InlineKeyboardButton(text="🔙 Назад", callback_data=callback_data)])
+
 # Главное меню с обновленным callback_data для котировок.
 def main_menu(chat_type: str = 'private', is_admin: bool = False) -> InlineKeyboardMarkup:
     keyboard = [
-        [
-            InlineKeyboardButton(text="📈 Котировки", callback_data="quotes_menu"),
-            InlineKeyboardButton(text="💼 Портфель", callback_data="portfolio_view_default")
-        ],
-        [
-            InlineKeyboardButton(text="🔔 Алерты", callback_data="alerts_menu"),
-            InlineKeyboardButton(text="📅 Календарь", callback_data="calendar")
-        ],
-        [
-            InlineKeyboardButton(text="📊 Рынок", callback_data="market"),
-            InlineKeyboardButton(text="ℹ️ Помощь", callback_data="help")
-        ]
+        [InlineKeyboardButton(text="📊 Рынок", callback_data="market_submenu")],
+        [InlineKeyboardButton(text="💼 Портфель", callback_data="portfolio_view_default")],
+        [InlineKeyboardButton(text="⚙️ Настройки", callback_data="settings_open")],
+        [InlineKeyboardButton(text="ℹ️ Помощь", callback_data="help")]
     ]
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
-    if chat_type in ['group', 'supergroup']:
-        keyboard.append([InlineKeyboardButton(text="⚙️ Настройки", callback_data="settings_open")])
-
-    keyboard.append([InlineKeyboardButton(text="🚫 Отмена", callback_data="cancel")])
-
+def market_submenu_keyboard() -> InlineKeyboardMarkup:
+    keyboard = [
+        [
+            InlineKeyboardButton(text="📅 Календарь", callback_data="calendar"),
+            InlineKeyboardButton(text="📈 Котировки", callback_data="quotes_menu")
+        ],
+        [InlineKeyboardButton(text="🔙 Назад", callback_data="main_menu")]
+    ]
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
 def sub_account_select_keyboard(sub_accounts: list[str], action_prefix: str) -> InlineKeyboardMarkup:
@@ -52,14 +52,14 @@ def portfolio_view_keyboard(sub_accounts: list[str], current_sub_account: str, c
                 next_sub = sub_accounts[current_index + 1]
                 sub_account_buttons.append(InlineKeyboardButton(text=f"{next_sub} ▶️", callback_data=f"p_sw_{next_sub}"))
             if sub_account_buttons:
-                 keyboard.append(sub_account_buttons)
+                keyboard.append(sub_account_buttons)
         except ValueError:
             logger.warning(f"Current sub-account '{current_sub_account}' not found in list: {sub_accounts}")
 
     asset_action_buttons = [
         InlineKeyboardButton(text="➕ Добавить сюда", callback_data=f"p_add_{current_sub_account}"),
         InlineKeyboardButton(text="🗑 Удалить отсюда", callback_data=f"p_rm_{current_sub_account}"),
-        InlineKeyboardButton(text="🔔 Установить алерт", callback_data="set_alert")
+        InlineKeyboardButton(text="🔔 Алерты", callback_data="alerts_from_portfolio")
     ]
     keyboard.append(asset_action_buttons)
 
@@ -72,12 +72,12 @@ def portfolio_view_keyboard(sub_accounts: list[str], current_sub_account: str, c
         keyboard.append(pagination_buttons)
 
     sub_account_management_buttons = [
-         InlineKeyboardButton(text="➕ Новый суб-счет", callback_data="portfolio_add_sub_account_start")
+        InlineKeyboardButton(text="➕ Новый суб-счет", callback_data="portfolio_add_sub_account_start")
     ]
     if len(sub_accounts) > 1:
-         sub_account_management_buttons.append(
-             InlineKeyboardButton(text="🗑 Удал. суб-счет...", callback_data="portfolio_remove_sub_account_start")
-         )
+        sub_account_management_buttons.append(
+            InlineKeyboardButton(text="🗑 Удал. суб-счет...", callback_data="portfolio_remove_sub_account_start")
+        )
 
     keyboard.append(sub_account_management_buttons)
 
@@ -98,20 +98,24 @@ def quotes_menu_keyboard() -> InlineKeyboardMarkup:
     ])
 
 # Создание клавиатуры для выбора типа актива (акции или криптовалюты).
-def asset_type_keyboard() -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(inline_keyboard=[
+def asset_type_keyboard(back_callback: str) -> InlineKeyboardMarkup:
+    keyboard = [
         [InlineKeyboardButton(text="Акции", callback_data="stock")],
         [InlineKeyboardButton(text="Криптовалюты", callback_data="crypto")]
-    ])
+    ]
+    _add_back_button_row(keyboard, back_callback)
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
 # Клавиатура для выбора условия алерта.
-def alert_condition_keyboard() -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(inline_keyboard=[
+def alert_condition_keyboard(back_callback: str) -> InlineKeyboardMarkup:
+    keyboard = [
         [
             InlineKeyboardButton(text="Выше", callback_data="above"),
             InlineKeyboardButton(text="Ниже", callback_data="below")
         ]
-    ])
+    ]
+    _add_back_button_row(keyboard, back_callback)
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
 # Создание клавиатуры для отмены действия.
 def cancel_keyboard() -> ReplyKeyboardMarkup:
@@ -135,11 +139,12 @@ def alert_actions_keyboard(alert_id: int) -> InlineKeyboardMarkup:
     ])
 
 # Клавиатура для подтверждения установки алерта.
-def confirm_alert_keyboard(symbol: str, target_price: float, condition: str) -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(inline_keyboard=[
+def confirm_alert_keyboard() -> InlineKeyboardMarkup:
+     return InlineKeyboardMarkup(inline_keyboard=[
         [
-            InlineKeyboardButton(text="✅ Подтвердить", callback_data=f"confirm_alert_{symbol}_{target_price}_{condition}"),
-            InlineKeyboardButton(text="🚫 Отмена", callback_data="cancel")
+            InlineKeyboardButton(text="✅ Подтвердить", callback_data="confirm_alert"),
+            InlineKeyboardButton(text="🚫 Отмена", callback_data="cancel"),
+            InlineKeyboardButton(text="🔙 Назад", callback_data="back_to_alert_condition")
         ]
     ])
 
